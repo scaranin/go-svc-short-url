@@ -20,7 +20,7 @@ func getHandle(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 	}
 
-	url := getURL(string(shortURL))
+	url := getURL(string(shortURL)[1:])
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 	}
