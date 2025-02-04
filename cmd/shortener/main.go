@@ -15,12 +15,12 @@ var mapURL map[string]string
 func getHandle(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("content-type", contentTypeTextPlain)
 
-	shortUrl, err := io.ReadAll(req.Body)
+	shortURL, err := io.ReadAll(req.Body)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 	}
 
-	url := getURL(string(shortUrl))
+	url := getURL(string(shortURL))
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 	}
@@ -44,17 +44,17 @@ func postHandle(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 	}
 
-	shortUrl, err := addShortURL(string(url))
+	shortURL, err := addShortURL(string(url))
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 	}
 	res.WriteHeader(http.StatusCreated)
-	res.Write([]byte("http://localhost:8080/" + shortUrl))
+	res.Write([]byte("http://localhost:8080/" + shortURL))
 }
 
 func addShortURL(url string) (string, error) {
 	if len([]rune(url)) == 0 {
-		return "", errors.New("Wrong URL")
+		return nil, errors.New("Wrong URL")
 	} else {
 		hasher := sha1.New()
 		hasher.Write([]byte(url))
