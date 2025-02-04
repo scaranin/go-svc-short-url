@@ -3,9 +3,9 @@ package main
 import (
 	"crypto/sha1"
 	"encoding/base64"
-	"errors"
 	"io"
 	"net/http"
+	"strings"
 )
 
 const contentTypeTextPlain string = "text/plain"
@@ -31,7 +31,7 @@ func getHandle(res http.ResponseWriter, req *http.Request) {
 
 func postHandle(res http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("content-type")
-	if !trings.Contains(contentType, contentTypeTextPlain) {
+	if !strings.Contains(contentType, contentTypeTextPlain) {
 		http.Error(res, contentType+" not supported", http.StatusBadRequest)
 		return
 	}
@@ -44,24 +44,18 @@ func postHandle(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 	}
 
-	shortURL, err := addShortURL(string(url))
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
-	}
+	shortURL := addShortURL(string(url))
+
 	res.WriteHeader(http.StatusCreated)
 	res.Write([]byte("http://localhost:8080/" + shortURL))
 }
 
-func addShortURL(url string) (string, error) {
-	if len([]rune(url)) == 0 {
-		return nil, errors.New("Wrong URL")
-	} else {
-		hasher := sha1.New()
-		hasher.Write([]byte(url))
-		shortURL := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
-		mapURL[shortURL] = url
-		return shortURL, nil
-	}
+func addShortURL(url string) string {
+	hasher := sha1.New()
+	hasher.Write([]byte(url))
+	shortURL := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+	mapURL[shortURL] = url
+	return shortURL
 
 }
 
