@@ -13,22 +13,17 @@ const contentTypeTextPlain string = "text/plain"
 var mapURL map[string]string
 
 func getHandle(res http.ResponseWriter, req *http.Request) {
-	res.Header().Set("content-type", contentTypeTextPlain)
-
-	shortURL, err := io.ReadAll(req.Body)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
-	}
+	shortURL := strings.TrimPrefix(req.URL.Path, "/")
 
 	var url string
-	if len(shortURL) != 0 {
-		url = getURL(string(shortURL)[1:])
-	}
 
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
+	if len([]rune(shortURL)) != 0 {
+		url = getURL(shortURL)
+	} else {
+		http.Error(res, "Nil value", http.StatusBadRequest)
+		return
 	}
-
+	res.Header().Set("content-type", contentTypeTextPlain)
 	res.Header().Set("Location", url)
 	res.WriteHeader(http.StatusTemporaryRedirect)
 	res.Write([]byte(url))
@@ -47,8 +42,13 @@ func postHandle(res http.ResponseWriter, req *http.Request) {
 	url, err := io.ReadAll(req.Body)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
 	}
 
+	if len(url) == 0 {
+		http.Error(res, "Nil value", http.StatusBadRequest)
+		return
+	}
 	shortURL := addShortURL(string(url))
 
 	res.WriteHeader(http.StatusCreated)
@@ -57,14 +57,10 @@ func postHandle(res http.ResponseWriter, req *http.Request) {
 
 func addShortURL(url string) string {
 	hasher := sha1.New()
-	if url == "" {
-		url = "EmptyCode"
-	}
 	hasher.Write([]byte(url))
 	shortURL := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 	mapURL[shortURL] = url
 	return shortURL
-
 }
 
 func getURL(shortURL string) string {
