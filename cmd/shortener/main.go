@@ -31,7 +31,7 @@ func getHandle(res http.ResponseWriter, req *http.Request) {
 
 func postHandle(res http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("content-type")
-	if contentType != contentTypeTextPlain {
+	if !trings.Contains(contentType, contentTypeTextPlain) {
 		http.Error(res, contentType+" not supported", http.StatusBadRequest)
 		return
 	}
