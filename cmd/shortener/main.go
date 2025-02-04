@@ -49,7 +49,7 @@ func postHandle(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 	}
 	res.WriteHeader(http.StatusCreated)
-	res.Write([]byte("localhost:8080/" + shortUrl))
+	res.Write([]byte("http://localhost:8080/" + shortUrl))
 }
 
 func addShortURL(url string) (string, error) {
