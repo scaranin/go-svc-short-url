@@ -23,8 +23,6 @@ func getHandle(res http.ResponseWriter, req *http.Request) {
 	var url string
 	if len(shortURL) != 0 {
 		url = getURL(string(shortURL)[1:])
-	} else {
-		url = ""
 	}
 
 	if err != nil {
