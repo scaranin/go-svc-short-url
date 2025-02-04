@@ -52,6 +52,9 @@ func postHandle(res http.ResponseWriter, req *http.Request) {
 
 func addShortURL(url string) string {
 	hasher := sha1.New()
+	if url == "" {
+		url = "EmptyCode"
+	}
 	hasher.Write([]byte(url))
 	shortURL := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 	mapURL[shortURL] = url
