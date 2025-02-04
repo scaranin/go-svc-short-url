@@ -16,7 +16,6 @@ func getHandle(res http.ResponseWriter, req *http.Request) {
 	shortURL := strings.TrimPrefix(req.URL.Path, "/")
 
 	var url string
-
 	if len([]rune(shortURL)) != 0 {
 		url = getURL(shortURL)
 	} else {
@@ -26,7 +25,6 @@ func getHandle(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("content-type", contentTypeTextPlain)
 	res.Header().Set("Location", url)
 	res.WriteHeader(http.StatusTemporaryRedirect)
-	res.Write([]byte(url))
 }
 
 func postHandle(res http.ResponseWriter, req *http.Request) {
