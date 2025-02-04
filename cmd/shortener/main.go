@@ -20,10 +20,17 @@ func getHandle(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 	}
 
-	url := getURL(string(shortURL)[1:])
+	var url string
+	if len(shortURL) != 0 {
+		url = getURL(string(shortURL)[1:])
+	} else {
+		url = ""
+	}
+
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 	}
+
 	res.Header().Set("Location", url)
 	res.WriteHeader(http.StatusTemporaryRedirect)
 	res.Write([]byte(url))
