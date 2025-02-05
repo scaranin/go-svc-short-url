@@ -22,7 +22,7 @@ func getHandle(res http.ResponseWriter, req *http.Request) {
 	if len([]rune(shortURL)) != 0 {
 		url = getURL(shortURL)
 	} else {
-		http.Error(res, "Nil value", http.StatusBadRequest)
+		http.Error(res, "Empty value", http.StatusBadRequest)
 		return
 	}
 	res.Header().Set("Location", url)
