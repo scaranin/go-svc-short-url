@@ -4,11 +4,12 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"flag"
-	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 
+	"github.com/caarlos0/env/v6"
 	"github.com/go-chi/chi"
 	"github.com/scaranin/go-svc-short-url/internal/config"
 )
@@ -20,6 +21,11 @@ var (
 	serverURL string
 	baseURL   string
 )
+
+type envConfig struct {
+	serverURL string `env:"SERVER_ADDRESS"`
+	baseURL   string `env:"BASE_URL"`
+}
 
 func getHandle(res http.ResponseWriter, req *http.Request) {
 
@@ -95,17 +101,35 @@ func routeHandle(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func main() {
+func setParams() {
+	var cfg envConfig
+	err := env.Parse(&cfg)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	netCfg := config.New()
 
 	flag.StringVar(&netCfg.ServerURL, "a", "localhost:8080", "Server URL")
 	flag.StringVar(&netCfg.BaseURL, "b", "http://localhost:8080", "Base URL")
 	flag.Parse()
 
-	serverURL = netCfg.ServerURL
-	baseURL = netCfg.BaseURL + "/"
-	fmt.Println(serverURL)
-	fmt.Println(baseURL)
+	if len([]rune(cfg.serverURL)) != 0 {
+		serverURL = cfg.serverURL
+	} else {
+		serverURL = netCfg.ServerURL
+	}
+
+	if len([]rune(cfg.baseURL)) != 0 {
+		baseURL = cfg.baseURL + "/"
+	} else {
+		baseURL = netCfg.BaseURL + "/"
+	}
+}
+
+func main() {
+	setParams()
 
 	req := chi.NewRouter()
 
