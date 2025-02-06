@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/go-chi/chi"
 )
 
 const contentTypeTextPlain string = "text/plain"
@@ -114,6 +116,7 @@ func routeHandle(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
+/*
 func main() {
 	mapURL = make(map[string]string)
 	mux := http.NewServeMux()
@@ -124,8 +127,8 @@ func main() {
 		panic(err)
 	}
 }
+*/
 
-/*
 func main() {
 	req := chi.NewRouter()
 
@@ -134,10 +137,11 @@ func main() {
 		req.Post(`/`, postHandle)
 	})
 
-	req.Use(middleware.RealIP)
-	err := http.ListenAndServe(":8080", req)
+	mux := http.NewServeMux()
+	mux.HandleFunc(`/`, routeHandle)
+
+	err := http.ListenAndServe(":8080", mux)
 	if err != nil {
 		panic(err)
 	}
 }
-*/
