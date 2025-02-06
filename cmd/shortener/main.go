@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/go-chi/chi/v5"
 )
 
 const contentTypeTextPlain string = "text/plain"
@@ -13,9 +15,7 @@ const contentTypeTextPlain string = "text/plain"
 var mapURL = make(map[string]string)
 
 func getHandle(res http.ResponseWriter, req *http.Request) {
-
 	res.Header().Set("content-type", contentTypeTextPlain)
-
 	shortURL := strings.TrimPrefix(req.URL.Path, "/")
 
 	var url string
@@ -30,7 +30,6 @@ func getHandle(res http.ResponseWriter, req *http.Request) {
 }
 
 func postHandle(res http.ResponseWriter, req *http.Request) {
-
 	res.Header().Set("content-type", contentTypeTextPlain)
 
 	contentType := req.Header.Get("content-type")
@@ -43,6 +42,8 @@ func postHandle(res http.ResponseWriter, req *http.Request) {
 	var err error
 	url, err := io.ReadAll(req.Body)
 
+	defer req.Body.Close()
+
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
@@ -54,6 +55,7 @@ func postHandle(res http.ResponseWriter, req *http.Request) {
 	}
 
 	shortURL := addShortURL(string(url))
+
 	res.WriteHeader(http.StatusCreated)
 	res.Write([]byte("http://localhost:8080/" + shortURL))
 }
@@ -73,22 +75,15 @@ func getURL(shortURL string) string {
 	return mapURL[shortURL]
 }
 
-func routeHandle(res http.ResponseWriter, req *http.Request) {
-	switch req.Method {
-	case http.MethodGet:
-		getHandle(res, req)
-	case http.MethodPost:
-		postHandle(res, req)
-	default:
-		http.Error(res, "Only post and get requests are allowed!", http.StatusBadRequest)
-	}
-}
-
 func main() {
-	mux := http.NewServeMux()
-	mux.HandleFunc(`/`, routeHandle)
+	req := chi.NewRouter()
 
-	err := http.ListenAndServe(`:8080`, mux)
+	req.Route("/", func(req chi.Router) {
+		req.Get("/", getHandle)
+		req.Post("/", postHandle)
+	})
+
+	err := http.ListenAndServe(":8080", req)
 	if err != nil {
 		panic(err)
 	}

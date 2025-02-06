@@ -11,51 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_routeHandle(t *testing.T) {
-	type want struct {
-		statusCode  int
-		response    string
-		contentType string
-		method      string
-	}
-	tests := []struct {
-		name string
-		want want
-	}{
-		{
-			name: "route handle negative test #1",
-			want: want{
-				statusCode:  http.StatusBadRequest,
-				response:    "Only post and get requests are allowed!\n",
-				contentType: "text/plain",
-				method:      http.MethodPut,
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(tt.want.method, "/", nil)
-
-			req.Header.Set("content-type", "text/plain")
-
-			rec := httptest.NewRecorder()
-
-			routeHandle(rec, req)
-
-			res := rec.Result()
-
-			defer res.Body.Close()
-			assert.Equal(t, tt.want.statusCode, res.StatusCode)
-
-			resBody, err := io.ReadAll(res.Body)
-
-			require.NoError(t, err)
-			assert.Equal(t, tt.want.response, string(resBody))
-			assert.Contains(t, res.Header.Get("content-type"), tt.want.contentType)
-		})
-	}
-}
-
 func Test_getHandle(t *testing.T) {
 	type want struct {
 		statusCode  int
