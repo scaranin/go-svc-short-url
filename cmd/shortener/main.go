@@ -99,11 +99,11 @@ func main() {
 	netCfg := config.New()
 
 	flag.StringVar(&netCfg.ServerURL, "a", "localhost:8080", "Server URL")
-	flag.StringVar(&netCfg.BaseURL, "b", "http://localhost:8080/", "Base URL")
+	flag.StringVar(&netCfg.BaseURL, "b", "http://localhost:8080", "Base URL")
 	flag.Parse()
 
 	serverURL = netCfg.ServerURL
-	baseURL = netCfg.BaseURL
+	baseURL = netCfg.BaseURL + "/"
 	fmt.Println(serverURL)
 	fmt.Println(baseURL)
 
