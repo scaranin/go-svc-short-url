@@ -1,10 +1,7 @@
 package main
 
 import (
-	"crypto/sha1"
-	"encoding/base64"
 	"flag"
-	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -12,9 +9,8 @@ import (
 	"github.com/caarlos0/env/v6"
 	"github.com/go-chi/chi"
 	"github.com/scaranin/go-svc-short-url/internal/config"
+	"github.com/scaranin/go-svc-short-url/internal/handlers"
 )
-
-const contentTypeTextPlain string = "text/plain"
 
 var (
 	mapURL    = make(map[string]string)
@@ -23,8 +19,8 @@ var (
 )
 
 type envConfig struct {
-	serverURL string `env:"SERVER_ADDRESS"`
-	baseURL   string `env:"BASE_URL"`
+	ServerURL string `env:"SERVER_ADDRESS"`
+	BaseURL   string `env:"BASE_URL"`
 }
 
 func getHandle(res http.ResponseWriter, req *http.Request) {
@@ -34,7 +30,7 @@ func getHandle(res http.ResponseWriter, req *http.Request) {
 	shortURL := strings.TrimPrefix(req.URL.Path, "/")
 
 	var url string
-	if len([]rune(shortURL)) != 0 {
+	if len(shortURL) != 0 {
 		url = getURL(shortURL)
 	} else {
 		http.Error(res, "Empty value", http.StatusBadRequest)
@@ -42,52 +38,6 @@ func getHandle(res http.ResponseWriter, req *http.Request) {
 	}
 	res.Header().Set("Location", url)
 	res.WriteHeader(http.StatusTemporaryRedirect)
-}
-
-func postHandle(res http.ResponseWriter, req *http.Request) {
-	res.Header().Set("content-type", contentTypeTextPlain)
-
-	contentType := req.Header.Get("content-type")
-
-	if !strings.Contains(contentType, contentTypeTextPlain) {
-		http.Error(res, contentType+" not supported", http.StatusBadRequest)
-		return
-	}
-
-	var err error
-	url, err := io.ReadAll(req.Body)
-
-	defer req.Body.Close()
-
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if len(url) == 0 {
-		http.Error(res, "Empty value", http.StatusBadRequest)
-		return
-	}
-
-	shortURL := addShortURL(string(url))
-
-	res.WriteHeader(http.StatusCreated)
-	res.Write([]byte(baseURL + shortURL))
-}
-
-func addShortURL(url string) string {
-	hasher := sha1.New()
-
-	hasher.Write([]byte(url))
-
-	shortURL := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
-	mapURL[shortURL] = url
-
-	return shortURL
-}
-
-func getURL(shortURL string) string {
-	return mapURL[shortURL]
 }
 
 func routeHandle(res http.ResponseWriter, req *http.Request) {
@@ -115,14 +65,14 @@ func setParams() {
 	flag.StringVar(&netCfg.BaseURL, "b", "http://localhost:8080", "Base URL")
 	flag.Parse()
 
-	if len([]rune(cfg.serverURL)) != 0 {
-		serverURL = cfg.serverURL
+	if len(cfg.ServerURL) != 0 {
+		serverURL = cfg.ServerURL
 	} else {
 		serverURL = netCfg.ServerURL
 	}
 
-	if len([]rune(cfg.baseURL)) != 0 {
-		baseURL = cfg.baseURL + "/"
+	if len(cfg.BaseURL) != 0 {
+		baseURL = cfg.BaseURL + "/"
 	} else {
 		baseURL = netCfg.BaseURL + "/"
 	}
@@ -133,9 +83,13 @@ func main() {
 
 	req := chi.NewRouter()
 
+	h := handlers.URLHandler;
+	
+	h.GetHandle
+
 	req.Route(`/`, func(req chi.Router) {
-		req.Get(`/`, getHandle)
-		req.Post(`/`, postHandle)
+		req.Get(`/`, handlers.GetHandle)
+		req.Post(`/`, handlers.URLHandler. )
 	})
 
 	mux := http.NewServeMux()
@@ -143,6 +97,6 @@ func main() {
 
 	err := http.ListenAndServe(serverURL, mux)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 }
