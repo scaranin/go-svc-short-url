@@ -3,22 +3,53 @@ package handlers
 import (
 	"crypto/sha1"
 	"encoding/base64"
+	"flag"
 	"io"
+	"log"
 	"net/http"
 	"strings"
+
+	"github.com/caarlos0/env"
+	"github.com/scaranin/go-svc-short-url/internal/config"
 )
 
 const contentTypeTextPlain string = "text/plain"
 
-var (
-	mapURL    = make(map[string]string)
-	serverURL string
-	baseURL   string
-)
+type EnvConfig struct {
+	ServerURL string `env:"SERVER_ADDRESS"`
+	BaseURL   string `env:"BASE_URL"`
+}
 
 type URLHandler struct {
 	urlMap  map[string]string
 	baseURL string
+	Cfg     EnvConfig
+}
+
+func CreateConfig() URLHandler {
+	var cfg EnvConfig
+	var h URLHandler
+	h.Cfg = cfg
+	err := env.Parse(&cfg)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	netCfg := config.New()
+
+	flag.StringVar(&netCfg.ServerURL, "a", "localhost:8080", "Server URL")
+	flag.StringVar(&netCfg.BaseURL, "b", "http://localhost:8080", "Base URL")
+	flag.Parse()
+
+	if len(cfg.ServerURL) == 0 {
+		cfg.ServerURL = netCfg.ServerURL
+	}
+
+	if len(cfg.BaseURL) == 0 {
+		cfg.BaseURL = netCfg.BaseURL + "/"
+	}
+	return h
 }
 
 func (h *URLHandler) PostHandle(w http.ResponseWriter, r *http.Request) {
@@ -46,19 +77,19 @@ func (h *URLHandler) PostHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortURL := addShortURL(string(url))
+	shortURL := h.addShortURL(string(url))
 
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(baseURL + shortURL))
+	w.Write([]byte(h.baseURL + shortURL))
 }
 
-func addShortURL(url string) string {
+func (h *URLHandler) addShortURL(url string) string {
 	hasher := sha1.New()
 
 	hasher.Write([]byte(url))
 
 	shortURL := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
-	mapURL[shortURL] = url
+	h.urlMap[shortURL] = url
 
 	return shortURL
 }
@@ -70,7 +101,7 @@ func (h *URLHandler) GetHandle(w http.ResponseWriter, r *http.Request) {
 
 	var url string
 	if len(shortURL) != 0 {
-		url = getURL(shortURL)
+		url = h.getURL(shortURL)
 	} else {
 		http.Error(w, "Empty value", http.StatusBadRequest)
 		return
@@ -79,6 +110,17 @@ func (h *URLHandler) GetHandle(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
-func getURL(shortURL string) string {
-	return mapURL[shortURL]
+func (h *URLHandler) getURL(shortURL string) string {
+	return h.urlMap[shortURL]
+}
+
+func (h *URLHandler) RouteHandle(res http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case http.MethodGet:
+		h.GetHandle(res, req)
+	case http.MethodPost:
+		h.PostHandle(res, req)
+	default:
+		http.Error(res, "Only post and get requests are allowed!", http.StatusBadRequest)
+	}
 }
