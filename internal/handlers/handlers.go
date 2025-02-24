@@ -29,7 +29,8 @@ type URLHandler struct {
 func CreateConfig() URLHandler {
 	var cfg EnvConfig
 	var h URLHandler
-	h.Cfg = cfg
+	h.urlMap = make(map[string]string)
+
 	err := env.Parse(&cfg)
 
 	if err != nil {
@@ -38,8 +39,12 @@ func CreateConfig() URLHandler {
 
 	netCfg := config.New()
 
-	flag.StringVar(&netCfg.ServerURL, "a", "localhost:8080", "Server URL")
-	flag.StringVar(&netCfg.BaseURL, "b", "http://localhost:8080", "Base URL")
+	if flag.Lookup("a") == nil {
+		flag.StringVar(&netCfg.ServerURL, "a", "localhost:8080", "Server URL")
+	}
+	if flag.Lookup("b") == nil {
+		flag.StringVar(&netCfg.BaseURL, "b", "http://localhost:8080", "Base URL")
+	}
 	flag.Parse()
 
 	if len(cfg.ServerURL) == 0 {
@@ -49,12 +54,13 @@ func CreateConfig() URLHandler {
 	if len(cfg.BaseURL) == 0 {
 		cfg.BaseURL = netCfg.BaseURL + "/"
 	}
+
+	h.Cfg = cfg
 	return h
 }
 
 func (h *URLHandler) PostHandle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", contentTypeTextPlain)
-
 	contentType := r.Header.Get("content-type")
 
 	if !strings.Contains(contentType, contentTypeTextPlain) {
@@ -112,15 +118,4 @@ func (h *URLHandler) GetHandle(w http.ResponseWriter, r *http.Request) {
 
 func (h *URLHandler) getURL(shortURL string) string {
 	return h.urlMap[shortURL]
-}
-
-func (h *URLHandler) RouteHandle(res http.ResponseWriter, req *http.Request) {
-	switch req.Method {
-	case http.MethodGet:
-		h.GetHandle(res, req)
-	case http.MethodPost:
-		h.PostHandle(res, req)
-	default:
-		http.Error(res, "Only post and get requests are allowed!", http.StatusBadRequest)
-	}
 }
