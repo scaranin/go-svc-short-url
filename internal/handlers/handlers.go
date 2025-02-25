@@ -44,7 +44,7 @@ func CreateConfig() URLHandler {
 		flag.StringVar(&netCfg.ServerURL, "a", "localhost:8080", "Server URL")
 	}
 	if flag.Lookup("b") == nil {
-		flag.StringVar(&netCfg.BaseURL, "b", "http://localhost:8080", "Base URL")
+		flag.StringVar(&netCfg.BaseURL, "b", "http://localhost:8080/", "Base URL")
 	}
 	flag.Parse()
 
