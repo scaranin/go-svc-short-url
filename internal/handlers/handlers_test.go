@@ -79,7 +79,7 @@ func TestURLHandler_PostHandle(t *testing.T) {
 			want: want{
 				statusCode:  http.StatusCreated,
 				request:     "https://practicum.yandex.ru/",
-				response:    "pkmdI_i-nYcS6P7hSfjTtWUmfcA=",
+				response:    "http://localhost:8080/pkmdI_i-nYcS6P7hSfjTtWUmfcA=",
 				contentType: "text/plain",
 			},
 		},

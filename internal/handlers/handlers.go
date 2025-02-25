@@ -4,12 +4,14 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"strings"
 
 	"github.com/caarlos0/env"
+	"github.com/go-chi/chi"
 	"github.com/scaranin/go-svc-short-url/internal/config"
 )
 
@@ -21,9 +23,8 @@ type EnvConfig struct {
 }
 
 type URLHandler struct {
-	urlMap  map[string]string
-	baseURL string
-	Cfg     EnvConfig
+	urlMap map[string]string
+	Cfg    EnvConfig
 }
 
 func CreateConfig() URLHandler {
@@ -86,7 +87,7 @@ func (h *URLHandler) PostHandle(w http.ResponseWriter, r *http.Request) {
 	shortURL := h.addShortURL(string(url))
 
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(h.baseURL + shortURL))
+	w.Write([]byte(h.Cfg.BaseURL + shortURL))
 }
 
 func (h *URLHandler) addShortURL(url string) string {
@@ -103,7 +104,8 @@ func (h *URLHandler) addShortURL(url string) string {
 func (h *URLHandler) GetHandle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", contentTypeTextPlain)
 
-	shortURL := strings.TrimPrefix(r.URL.Path, "/")
+	shortURL := chi.URLParam(r, "shortURL")
+	fmt.Println("shortURL", shortURL)
 
 	var url string
 	if len(shortURL) != 0 {

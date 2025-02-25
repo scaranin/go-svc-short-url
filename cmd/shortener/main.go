@@ -14,16 +14,10 @@ func main() {
 
 	req := chi.NewRouter()
 
-	req.Get(`/`, middleware.WithLogging(h, http.MethodGet))
-	req.Get(`/{shortURL}`, middleware.WithLogging(h, http.MethodGet))
-	req.Post(`/`, middleware.WithLogging(h, http.MethodPost))
-	/*
-		req.Route("/", func(req chi.Router) {
-			req.Get(`/`, middleware.WithLogging(h, http.MethodGet))
-			req.Get(`/{shortURL}`, middleware.WithLogging(h, http.MethodGet))
-			req.Post(`/`, middleware.WithLogging(h, http.MethodPost))
-		}
-	*/
+	req.Route(`/`, func(req chi.Router) {
+		req.Get(`/{shortURL}`, middleware.WithLogging(h, http.MethodGet))
+		req.Post(`/`, middleware.WithLogging(h, http.MethodPost))
+	})
 
 	err := http.ListenAndServe(h.Cfg.ServerURL, req)
 	if err != nil {

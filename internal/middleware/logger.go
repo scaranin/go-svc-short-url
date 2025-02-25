@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"io"
 	"log"
 	"net/http"
 	"time"
@@ -63,12 +62,7 @@ func WithLogging(h handlers.URLHandler, Method string) http.HandlerFunc {
 
 		duration := time.Since(start)
 
-		url, err := io.ReadAll(r.Body)
-
-		defer r.Body.Close()
-
 		sugar.Infoln(
-			"URL", url,
 			"uri", r.RequestURI,
 			"method", r.Method,
 			"status", responseData.status, // получаем перехваченный код статуса ответа
