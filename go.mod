@@ -8,6 +8,11 @@ require (
 )
 
 require (
+	go.uber.org/multierr v1.10.0 // indirect
+	go.uber.org/zap v1.27.0 // indirect
+)
+
+require (
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/davecgh/go-spew v1.1.1 // indirect

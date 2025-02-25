@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/scaranin/go-svc-short-url/internal/handlers"
-	"github.com/scaranin/go-svc-short-url/internal/loggers"
+	"github.com/scaranin/go-svc-short-url/internal/middleware"
 )
 
 func main() {
@@ -15,8 +15,8 @@ func main() {
 	req := chi.NewRouter()
 
 	req.Route(`/`, func(req chi.Router) {
-		req.Get(`/{shortURL}`, loggers.WithLogger(h.GetHandle))
-		req.Post(`/`, h.PostHandle)
+		req.Get(`/{shortURL}`, middleware.WithLogging(h, http.MethodGet))
+		req.Post(`/`, middleware.WithLogging(h, http.MethodPost))
 	})
 
 	err := http.ListenAndServe(h.Cfg.ServerURL, req)
