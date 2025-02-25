@@ -15,6 +15,7 @@ func main() {
 	req := chi.NewRouter()
 
 	req.Route(`/`, func(req chi.Router) {
+		req.Get(`/`, middleware.WithLogging(h, http.MethodGet))
 		req.Get(`/{shortURL}`, middleware.WithLogging(h, http.MethodGet))
 		req.Post(`/`, middleware.WithLogging(h, http.MethodPost))
 	})
