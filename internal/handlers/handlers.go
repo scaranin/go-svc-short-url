@@ -68,9 +68,8 @@ func (h *URLHandler) PostHandle(w http.ResponseWriter, r *http.Request) {
 	var (
 		url         []byte
 		err         error
-		contentType string = r.Header.Get("content-type")
+		contentType string = r.Header.Get("Content-Type")
 	)
-
 	switch contentType {
 	case contentTypeTextPlain:
 		{

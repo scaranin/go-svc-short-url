@@ -31,36 +31,43 @@ func TestURLHandler_GetHandle(t *testing.T) {
 				contentType: "text/plain",
 			},
 		},
-		/*
-			{
-				name: "get handle positive test #1",
-				want: want{
-					statusCode:  http.StatusTemporaryRedirect,
-					request:     "http://localhost:8080/pkmdI_i-nYcS6P7hSfjTtWUmfcA=",
-					location:    "https://practicum.yandex.ru/",
-					contentType: "text/plain",
-				},
+
+		{
+			name: "get handle positive test #1",
+			want: want{
+				statusCode:  http.StatusTemporaryRedirect,
+				request:     "http://localhost:8080/pkmdI_i-nYcS6P7hSfjTtWUmfcA=",
+				location:    "https://practicum.yandex.ru/",
+				contentType: "text/plain",
 			},
-		*/
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+
 			h1 := CreateConfig()
 			reqPost := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.want.location))
-			reqPost.Header.Set("content-type", tt.want.contentType)
+			reqPost.Header.Set("Content-Type", tt.want.contentType)
 			recPost := httptest.NewRecorder()
 			h1.PostHandle(recPost, reqPost)
 
-			req := httptest.NewRequest(http.MethodGet, tt.want.request, nil)
-			req.Header.Set("content-type", tt.want.contentType)
-			rec := httptest.NewRecorder()
-			h1.GetHandle(rec, req)
-			res := rec.Result()
+			payload := strings.NewReader(``)
+			client := &http.Client{}
+			req := httptest.NewRequest(http.MethodGet, tt.want.request, payload)
+
+			req.Header.Add("Content-Type", tt.want.contentType)
+
+			res, err := client.Do(req)
+			if err != nil {
+				return
+			}
 			defer res.Body.Close()
+
 			assert.Equal(t, tt.want.statusCode, res.StatusCode)
 			assert.Equal(t, tt.want.location, res.Header.Get("Location"))
 		})
 	}
+
 }
 
 func TestURLHandler_PostHandle(t *testing.T) {
