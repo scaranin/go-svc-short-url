@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/caarlos0/env"
 	"github.com/go-chi/chi"
@@ -68,8 +69,10 @@ func (h *URLHandler) PostHandle(w http.ResponseWriter, r *http.Request) {
 	var (
 		url         []byte
 		err         error
-		contentType string = r.Header.Get("Content-Type")
+		Header      []string = strings.Split(r.Header.Get("Content-Type"), ";")
+		contentType          = Header[0]
 	)
+
 	switch contentType {
 	case contentTypeTextPlain:
 		{
