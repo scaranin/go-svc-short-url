@@ -70,10 +70,15 @@ func (h *URLHandler) PostHandle(w http.ResponseWriter, r *http.Request) {
 		err         error
 		contentType string = r.Header.Get("content-type")
 	)
+
 	switch contentType {
 	case contentTypeTextPlain:
 		{
 			url, err = io.ReadAll(r.Body)
+			if len(url) == 0 {
+				w.WriteHeader(http.StatusCreated)
+				return
+			}
 		}
 	default:
 		{
