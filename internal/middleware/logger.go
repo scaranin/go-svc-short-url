@@ -52,12 +52,24 @@ func WithLogging(h handlers.URLHandler, Method string) http.HandlerFunc {
 			ResponseWriter: w, // встраиваем оригинальный http.ResponseWriter
 			responseData:   responseData,
 		}
-
-		if Method == http.MethodGet {
-			h.GetHandle(&lw, r) // внедряем реализацию http.ResponseWriter
-		}
-		if Method == http.MethodPost {
-			h.PostHandle(&lw, r)
+		switch Method {
+		case "GetShortUrlText":
+			{
+				h.GetHandle(&lw, r)
+			}
+		case "PostRootText":
+			{
+				h.PostHandle(&lw, r)
+			}
+		case "PostApiShortenJson":
+			{
+				h.PostHandleJson(&lw, r)
+			}
+		default:
+			{
+				http.Error(w, "Not supported", http.StatusBadRequest)
+				return
+			}
 		}
 
 		duration := time.Since(start)
