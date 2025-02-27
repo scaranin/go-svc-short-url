@@ -73,23 +73,6 @@ func (c *compressReader) Close() error {
 
 func GzipMiddleware(h http.Handler) http.Handler {
 	gzipFunc := func(w http.ResponseWriter, r *http.Request) {
-		// по умолчанию устанавливаем оригинальный http.ResponseWriter как тот,
-		// который будем передавать следующей функции
-		ow := w
-		//contentType := r.Header.Get("Content-Type")
-		//supportsContentType := strings.Contains(contentType, "application/json") || strings.Contains(contentType, "text/html")
-
-		// проверяем, что клиент умеет получать от сервера сжатые данные в формате gzip
-		acceptEncoding := r.Header.Get("Accept-Encoding")
-		supportsGzip := strings.Contains(acceptEncoding, "gzip")
-		if supportsGzip {
-			// оборачиваем оригинальный http.ResponseWriter новым с поддержкой сжатия
-			cw := newCompressWriter(w)
-			// меняем оригинальный http.ResponseWriter на новый
-			ow = cw
-			// не забываем отправить клиенту все сжатые данные после завершения middleware
-			defer cw.Close()
-		}
 
 		// проверяем, что клиент отправил серверу сжатые данные в формате gzip
 		contentEncoding := r.Header.Get("Content-Encoding")
@@ -104,6 +87,24 @@ func GzipMiddleware(h http.Handler) http.Handler {
 			// меняем тело запроса на новое
 			r.Body = cr
 			defer cr.Close()
+		}
+
+		ow := w
+		//contentType := r.Header.Get("Content-Type")
+		//supportsContentType := strings.Contains(contentType, "application/json") || strings.Contains(contentType, "text/html")
+
+		// проверяем, что клиент умеет получать от сервера сжатые данные в формате gzip
+		acceptEncoding := r.Header.Get("Accept-Encoding")
+		supportsGzip := strings.Contains(acceptEncoding, "gzip")
+		if supportsGzip {
+			w.Header().Set("Content-Encoding", "gzip")
+			w.Header().Set("Vary", "Accept-Encoding")
+			// оборачиваем оригинальный http.ResponseWriter новым с поддержкой сжатия
+			cw := newCompressWriter(w)
+			// меняем оригинальный http.ResponseWriter на новый
+			ow = cw
+			// не забываем отправить клиенту все сжатые данные после завершения middleware
+			defer cw.Close()
 		}
 
 		// передаём управление хендлеру
