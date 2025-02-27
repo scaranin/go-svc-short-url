@@ -74,50 +74,33 @@ func (c *compressReader) Close() error {
 
 func GzipMiddleware(h http.Handler) http.Handler {
 	gzipFunc := func(w http.ResponseWriter, r *http.Request) {
-
-		// проверяем, что клиент отправил серверу сжатые данные в формате gzip
 		contentEncoding := r.Header.Get("Content-Encoding")
-		fmt.Println("contentEncoding", contentEncoding)
-		sendsGzip := strings.Contains(contentEncoding, "gzip")
+		sendsGzip := strings.Contains(contentEncoding, "gzip") && contentEncoding == "gzip"
 		fmt.Println("sendsGzip", sendsGzip)
 
 		if sendsGzip {
-			// оборачиваем тело запроса в io.Reader с поддержкой декомпрессии
 			cr, err := newCompressReader(r.Body)
 			if err != nil {
-				fmt.Println("err", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-			// меняем тело запроса на новое
 			r.Body = cr
-			fmt.Println("r", r)
 			defer cr.Close()
 		}
 
 		ow := w
-		//contentType := r.Header.Get("Content-Type")
-		//supportsContentType := strings.Contains(contentType, "application/json") || strings.Contains(contentType, "text/html")
-
-		// проверяем, что клиент умеет получать от сервера сжатые данные в формате gzip
 		acceptEncoding := r.Header.Get("Accept-Encoding")
 		supportsGzip := strings.Contains(acceptEncoding, "gzip")
-		fmt.Println("supportsGzip", supportsGzip)
+
 		if supportsGzip {
 			ow.Header().Set("Content-Encoding", "gzip")
 			ow.Header().Set("Vary", "Accept-Encoding")
 
-			// оборачиваем оригинальный http.ResponseWriter новым с поддержкой сжатия
 			cw := newCompressWriter(w)
-			// меняем оригинальный http.ResponseWriter на новый
 			ow = cw
-			fmt.Println("ow", ow)
 
-			// не забываем отправить клиенту все сжатые данные после завершения middleware
 			defer cw.Close()
 		}
-
-		// передаём управление хендлеру
 		h.ServeHTTP(ow, r)
 
 	}
