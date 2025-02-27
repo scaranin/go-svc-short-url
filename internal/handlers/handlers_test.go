@@ -156,7 +156,7 @@ func TestURLHandler_PostHandleJson(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/api/shorten", strings.NewReader(tt.want.request))
 			req.Header.Set("content-type", tt.want.contentType)
 			rec := httptest.NewRecorder()
-			h.PostHandleJson(rec, req)
+			h.PostHandleJSON(rec, req)
 
 			res := rec.Result()
 			assert.Equal(t, tt.want.statusCode, res.StatusCode)

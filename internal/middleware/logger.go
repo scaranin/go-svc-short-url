@@ -63,7 +63,7 @@ func WithLogging(h handlers.URLHandler, Method string) http.HandlerFunc {
 			}
 		case "PostApiShortenJson":
 			{
-				h.PostHandleJson(&lw, r)
+				h.PostHandleJSON(&lw, r)
 			}
 		default:
 			{
