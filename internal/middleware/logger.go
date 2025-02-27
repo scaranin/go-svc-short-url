@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/scaranin/go-svc-short-url/internal/handlers"
 	"go.uber.org/zap"
 )
 
@@ -32,7 +31,7 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.responseData.status = statusCode
 }
 
-func WithLogging(h handlers.URLHandler, Method string) http.HandlerFunc {
+func WithLogging(h http.Handler) http.Handler {
 	logFn := func(w http.ResponseWriter, r *http.Request) {
 		logger, err := zap.NewDevelopment()
 		if err != nil {
@@ -52,25 +51,8 @@ func WithLogging(h handlers.URLHandler, Method string) http.HandlerFunc {
 			ResponseWriter: w, // встраиваем оригинальный http.ResponseWriter
 			responseData:   responseData,
 		}
-		switch Method {
-		case "GetShortUrlText":
-			{
-				h.GetHandle(&lw, r)
-			}
-		case "PostRootText":
-			{
-				h.PostHandle(&lw, r)
-			}
-		case "PostApiShortenJson":
-			{
-				h.PostHandleJson(&lw, r)
-			}
-		default:
-			{
-				http.Error(w, "Not supported", http.StatusBadRequest)
-				return
-			}
-		}
+
+		h.ServeHTTP(&lw, r)
 
 		duration := time.Since(start)
 

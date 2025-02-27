@@ -101,7 +101,6 @@ func (h *URLHandler) PostHandle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 }
-
 func (h *URLHandler) PostHandleJson(w http.ResponseWriter, r *http.Request) {
 	var (
 		url         []byte
