@@ -72,6 +72,7 @@ func (h *URLHandler) PostHandle(w http.ResponseWriter, r *http.Request) {
 		Header      []string = strings.Split(r.Header.Get("Content-Type"), ";")
 		contentType          = Header[0]
 	)
+	w.Header().Set("Content-Type", contentTypeTextPlain)
 
 	switch contentType {
 	case contentTypeTextPlain:
@@ -81,6 +82,14 @@ func (h *URLHandler) PostHandle(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusCreated)
 				return
 			}
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			shortURL := h.addShortURL(string(url))
+
+			w.WriteHeader(http.StatusCreated)
+			w.Write([]byte(h.Cfg.BaseURL + shortURL))
 		}
 	default:
 		{
@@ -90,22 +99,6 @@ func (h *URLHandler) PostHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer r.Body.Close()
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if len(url) == 0 {
-		http.Error(w, "Empty value", http.StatusBadRequest)
-		return
-	}
-
-	shortURL := h.addShortURL(string(url))
-
-	w.Header().Set("Content-Type", contentTypeTextPlain)
-	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(h.Cfg.BaseURL + shortURL))
 
 }
 

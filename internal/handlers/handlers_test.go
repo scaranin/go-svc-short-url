@@ -86,8 +86,8 @@ func TestURLHandler_PostHandle(t *testing.T) {
 			want: want{
 				statusCode:  http.StatusBadRequest,
 				request:     "",
-				response:    "Empty value\n",
-				contentType: "text/plain",
+				response:    "application/json not supported\n",
+				contentType: "application/json",
 			},
 		},
 		{
@@ -105,7 +105,7 @@ func TestURLHandler_PostHandle(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.want.request))
-			req.Header.Set("content-type", tt.want.contentType)
+			req.Header.Set("Content-Type", tt.want.contentType)
 			rec := httptest.NewRecorder()
 			h.PostHandle(rec, req)
 
@@ -116,7 +116,7 @@ func TestURLHandler_PostHandle(t *testing.T) {
 
 			require.NoError(t, err)
 			assert.Equal(t, tt.want.response, string(resBody))
-			assert.Contains(t, res.Header.Get("content-type"), tt.want.contentType)
+			assert.Contains(t, res.Header.Get("Content-Type"), "text/plain")
 		})
 	}
 }
