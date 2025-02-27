@@ -20,13 +20,20 @@ const contentTypeTextPlain string = "text/plain"
 const contentTypeApJSON string = "application/json"
 
 type EnvConfig struct {
-	ServerURL string `env:"SERVER_ADDRESS"`
-	BaseURL   string `env:"BASE_URL"`
+	ServerURL       string `env:"SERVER_ADDRESS"`
+	BaseURL         string `env:"BASE_URL"`
+	FileStorageParh string `env:"FILE_STORAGE_PATH"`
+}
+
+type BaseFileJSON struct {
+	Producer *models.Producer
+	Consumer *models.Consumer
 }
 
 type URLHandler struct {
-	urlMap map[string]string
-	Cfg    EnvConfig
+	urlMap   map[string]string
+	Cfg      EnvConfig
+	BaseFile BaseFileJSON
 }
 
 func CreateConfig() URLHandler {
@@ -48,6 +55,9 @@ func CreateConfig() URLHandler {
 	if flag.Lookup("b") == nil {
 		flag.StringVar(&netCfg.BaseURL, "b", "http://localhost:8080", "Base URL")
 	}
+	if flag.Lookup("f") == nil {
+		flag.StringVar(&netCfg.FileStorageParh, "f", "BaseFile.json", "Base URL")
+	}
 	flag.Parse()
 
 	if len(cfg.ServerURL) == 0 {
@@ -59,6 +69,33 @@ func CreateConfig() URLHandler {
 	}
 
 	cfg.BaseURL += "/"
+
+	if len(cfg.FileStorageParh) == 0 {
+		cfg.FileStorageParh = netCfg.FileStorageParh
+	}
+
+	Producer, err := models.NewProducer(cfg.FileStorageParh)
+	if err != nil {
+		log.Fatal(err)
+	}
+	h.BaseFile.Producer = Producer
+
+	Consumer, err := models.NewConsumer(cfg.FileStorageParh)
+	if err != nil {
+		log.Fatal(err)
+	}
+	h.BaseFile.Consumer = Consumer
+
+	for {
+		mURL, err := h.BaseFile.Consumer.GetURL()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+		h.urlMap[mURL.ShortURL] = mURL.URL
+	}
 
 	h.Cfg = cfg
 	return h
@@ -129,13 +166,22 @@ func (h *URLHandler) PostHandleJSON(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
+func (h *URLHandler) Close() {
+	h.BaseFile.Producer.Close()
+	h.BaseFile.Consumer.Close()
+}
+
 func (h *URLHandler) addShortURL(url string) string {
 	hasher := sha1.New()
 
 	hasher.Write([]byte(url))
 
 	shortURL := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
-	h.urlMap[shortURL] = url
+	if _, found := h.urlMap[shortURL]; !found {
+		h.urlMap[shortURL] = url
+		var baseURL = models.URL{URL: url, ShortURL: h.Cfg.BaseURL + "/" + shortURL}
+		h.BaseFile.Producer.AddURL(&baseURL)
+	}
 
 	return shortURL
 }

@@ -11,10 +11,13 @@ import (
 
 func main() {
 	h := handlers.CreateConfig()
+	defer h.Close()
 
 	req := chi.NewRouter()
 
 	req.Use(middleware.WithLogging, middleware.GzipMiddleware)
+
+	h.BaseFile.Consumer.GetURL()
 
 	req.Route(`/`, func(req chi.Router) {
 		req.Get(`/{shortURL}`, h.GetHandle)
