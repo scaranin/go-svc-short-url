@@ -18,7 +18,7 @@ import (
 )
 
 const contentTypeTextPlain string = "text/plain"
-const contentTypeApJson string = "application/json"
+const contentTypeApJSON string = "application/json"
 
 type EnvConfig struct {
 	ServerURL string `env:"SERVER_ADDRESS"`
@@ -69,9 +69,11 @@ func (h *URLHandler) PostHandle(w http.ResponseWriter, r *http.Request) {
 	var (
 		url         []byte
 		err         error
-		Header      []string = strings.Split(r.Header.Get("Content-Type"), ";")
-		contentType          = Header[0]
+		Header      []string
+		contentType string
 	)
+	Header = strings.Split(r.Header.Get("Content-Type"), ";")
+	contentType = Header[0]
 	w.Header().Set("Content-Type", contentTypeTextPlain)
 
 	switch contentType {
@@ -101,19 +103,24 @@ func (h *URLHandler) PostHandle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 }
+<<<<<<< HEAD
 func (h *URLHandler) PostHandleJson(w http.ResponseWriter, r *http.Request) {
+=======
+
+func (h *URLHandler) PostHandleJSON(w http.ResponseWriter, r *http.Request) {
+>>>>>>> bbe4fc3037e464f13dd02d88c88efeb0c12d179a
 	var (
 		url         []byte
 		err         error
-		contentType string = r.Header.Get("content-type")
+		contentType string
 	)
-
+	contentType = r.Header.Get("content-type")
 	switch contentType {
-	case contentTypeApJson:
+	case contentTypeApJSON:
 		{
 			var req models.Request
 			var buf bytes.Buffer
-			_, err := buf.ReadFrom(r.Body)
+			_, err = buf.ReadFrom(r.Body)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
@@ -122,7 +129,7 @@ func (h *URLHandler) PostHandleJson(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-			url = []byte(req.Url)
+			url = []byte(req.URL)
 		}
 	default:
 		{
@@ -132,11 +139,6 @@ func (h *URLHandler) PostHandleJson(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer r.Body.Close()
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
 
 	if len(url) == 0 {
 		http.Error(w, "Empty value", http.StatusBadRequest)
@@ -152,7 +154,7 @@ func (h *URLHandler) PostHandleJson(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("Content-Type", contentTypeApJson)
+	w.Header().Set("Content-Type", contentTypeApJSON)
 	w.WriteHeader(http.StatusCreated)
 	w.Write(resp)
 }
