@@ -9,7 +9,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/caarlos0/env"
 	"github.com/go-chi/chi"
@@ -67,41 +66,24 @@ func CreateConfig() URLHandler {
 
 func (h *URLHandler) PostHandle(w http.ResponseWriter, r *http.Request) {
 	var (
-		url         []byte
-		err         error
-		Header      []string
-		contentType string
+		url []byte
+		err error
 	)
-	Header = strings.Split(r.Header.Get("Content-Type"), ";")
-	contentType = Header[0]
 	w.Header().Set("Content-Type", contentTypeTextPlain)
 
-	switch contentType {
-	case contentTypeTextPlain:
-		{
-			url, err = io.ReadAll(r.Body)
-			if len(url) == 0 {
-				w.WriteHeader(http.StatusCreated)
-				return
-			}
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-			shortURL := h.addShortURL(string(url))
-
-			w.WriteHeader(http.StatusCreated)
-			w.Write([]byte(h.Cfg.BaseURL + shortURL))
-		}
-	default:
-		{
-			//http.Error(w, contentType+" not supported", http.StatusBadRequest)
-			//return
-			w.Header().Set("Content-Type", contentType)
-			w.WriteHeader(http.StatusCreated)
-			return
-		}
+	url, err = io.ReadAll(r.Body)
+	if len(url) == 0 {
+		w.WriteHeader(http.StatusCreated)
+		return
 	}
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	shortURL := h.addShortURL(string(url))
+
+	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte(h.Cfg.BaseURL + shortURL))
 
 	defer r.Body.Close()
 
@@ -109,35 +91,22 @@ func (h *URLHandler) PostHandle(w http.ResponseWriter, r *http.Request) {
 
 func (h *URLHandler) PostHandleJSON(w http.ResponseWriter, r *http.Request) {
 	var (
-		url         []byte
-		err         error
-		contentType string
+		url []byte
+		err error
 	)
-	contentType = r.Header.Get("content-type")
-	switch contentType {
-	case contentTypeApJSON:
-		{
-			var req models.Request
-			var buf bytes.Buffer
-			_, err = buf.ReadFrom(r.Body)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-			if err = json.Unmarshal(buf.Bytes(), &req); err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-			url = []byte(req.URL)
-		}
-	default:
-		{
-			//http.Error(w, contentType+" not supported", http.StatusBadRequest)
-			w.Header().Set("Content-Type", contentType)
-			w.WriteHeader(http.StatusCreated)
-			return
-		}
+
+	var req models.Request
+	var buf bytes.Buffer
+	_, err = buf.ReadFrom(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
+	if err = json.Unmarshal(buf.Bytes(), &req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	url = []byte(req.URL)
 
 	defer r.Body.Close()
 
