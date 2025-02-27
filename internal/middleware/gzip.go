@@ -77,8 +77,10 @@ func GzipMiddleware(h http.Handler) http.Handler {
 
 		// проверяем, что клиент отправил серверу сжатые данные в формате gzip
 		contentEncoding := r.Header.Get("Content-Encoding")
+		fmt.Println("contentEncoding", contentEncoding)
 		sendsGzip := strings.Contains(contentEncoding, "gzip")
 		fmt.Println("sendsGzip", sendsGzip)
+
 		if sendsGzip {
 			// оборачиваем тело запроса в io.Reader с поддержкой декомпрессии
 			cr, err := newCompressReader(r.Body)
@@ -102,12 +104,13 @@ func GzipMiddleware(h http.Handler) http.Handler {
 		supportsGzip := strings.Contains(acceptEncoding, "gzip")
 		fmt.Println("supportsGzip", supportsGzip)
 		if supportsGzip {
+			ow.Header().Set("Content-Encoding", "gzip")
+			ow.Header().Set("Vary", "Accept-Encoding")
+
 			// оборачиваем оригинальный http.ResponseWriter новым с поддержкой сжатия
 			cw := newCompressWriter(w)
 			// меняем оригинальный http.ResponseWriter на новый
 			ow = cw
-			ow.Header().Set("Content-Encoding", "gzip")
-			ow.Header().Set("Vary", "Accept-Encoding")
 			fmt.Println("ow", ow)
 
 			// не забываем отправить клиенту все сжатые данные после завершения middleware
@@ -116,6 +119,7 @@ func GzipMiddleware(h http.Handler) http.Handler {
 
 		// передаём управление хендлеру
 		h.ServeHTTP(ow, r)
+
 	}
 	return http.HandlerFunc(gzipFunc)
 }
