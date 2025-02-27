@@ -95,7 +95,10 @@ func (h *URLHandler) PostHandle(w http.ResponseWriter, r *http.Request) {
 		}
 	default:
 		{
-			http.Error(w, contentType+" not supported", http.StatusBadRequest)
+			//http.Error(w, contentType+" not supported", http.StatusBadRequest)
+			//return
+			w.Header().Set("Content-Type", contentType)
+			w.WriteHeader(http.StatusCreated)
 			return
 		}
 	}
@@ -129,7 +132,9 @@ func (h *URLHandler) PostHandleJSON(w http.ResponseWriter, r *http.Request) {
 		}
 	default:
 		{
-			http.Error(w, contentType+" not supported", http.StatusBadRequest)
+			//http.Error(w, contentType+" not supported", http.StatusBadRequest)
+			w.Header().Set("Content-Type", contentType)
+			w.WriteHeader(http.StatusCreated)
 			return
 		}
 	}

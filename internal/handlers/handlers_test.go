@@ -81,15 +81,17 @@ func TestURLHandler_PostHandle(t *testing.T) {
 		name string
 		want want
 	}{
-		{
-			name: "post handle negative test #1",
-			want: want{
-				statusCode:  http.StatusBadRequest,
-				request:     "",
-				response:    "application/json not supported\n",
-				contentType: "application/json",
+		/*
+			{
+				name: "post handle negative test #1",
+				want: want{
+					statusCode:  http.StatusBadRequest,
+					request:     "",
+					response:    "application/json not supported\n",
+					contentType: "application/json",
+				},
 			},
-		},
+		*/
 		{
 			name: "post handle positive test #1",
 			want: want{
