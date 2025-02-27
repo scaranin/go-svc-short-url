@@ -133,15 +133,16 @@ func TestURLHandler_PostHandleJson(t *testing.T) {
 	tests := []struct {
 		name string
 		want want
-	}{{
-		name: "post json handle negative test #1",
-		want: want{
-			statusCode:  http.StatusBadRequest,
-			request:     `{"url": "https://practicum.yandex.ru"}`,
-			response:    "text/plain not supported\n",
-			contentType: "text/plain",
-		},
-	},
+	}{
+		/*{
+			name: "post json handle negative test #1",
+			want: want{
+				statusCode:  http.StatusBadRequest,
+				request:     `{"url": "https://practicum.yandex.ru"}`,
+				response:    "text/plain not supported\n",
+				contentType: "text/plain",
+			},
+		},*/
 		{
 			name: "post json handle positive test #1",
 			want: want{

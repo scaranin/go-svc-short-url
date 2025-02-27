@@ -72,7 +72,7 @@ func (c *compressReader) Close() error {
 }
 
 func GzipMiddleware(h http.Handler) http.Handler {
-	gzip_func := func(w http.ResponseWriter, r *http.Request) {
+	gzipFunc := func(w http.ResponseWriter, r *http.Request) {
 		// по умолчанию устанавливаем оригинальный http.ResponseWriter как тот,
 		// который будем передавать следующей функции
 		ow := w
@@ -109,5 +109,5 @@ func GzipMiddleware(h http.Handler) http.Handler {
 		// передаём управление хендлеру
 		h.ServeHTTP(ow, r)
 	}
-	return http.HandlerFunc(gzip_func)
+	return http.HandlerFunc(gzipFunc)
 }
