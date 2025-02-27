@@ -19,7 +19,7 @@ func main() {
 	req.Route(`/`, func(req chi.Router) {
 		req.Get(`/{shortURL}`, h.GetHandle)
 		req.Post(`/`, h.PostHandle)
-		req.Post(`/api/shorten`, h.PostHandleJson)
+		req.Post(`/api/shorten`, h.PostHandleJSON)
 	})
 
 	err := http.ListenAndServe(h.Cfg.ServerURL, req)

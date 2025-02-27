@@ -103,12 +103,8 @@ func (h *URLHandler) PostHandle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 }
-<<<<<<< HEAD
-func (h *URLHandler) PostHandleJson(w http.ResponseWriter, r *http.Request) {
-=======
 
 func (h *URLHandler) PostHandleJSON(w http.ResponseWriter, r *http.Request) {
->>>>>>> bbe4fc3037e464f13dd02d88c88efeb0c12d179a
 	var (
 		url         []byte
 		err         error
