@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"compress/gzip"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -76,17 +75,14 @@ func GzipMiddleware(h http.Handler) http.Handler {
 	gzipFunc := func(w http.ResponseWriter, r *http.Request) {
 		contentEncoding := r.Header.Get("Content-Encoding")
 		sendsGzip := strings.Contains(contentEncoding, "gzip")
-		fmt.Println("sendsGzip", sendsGzip)
 
 		if sendsGzip {
 			cr, err := newCompressReader(r.Body)
-			fmt.Println("cr", cr)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 			r.Body = cr
-			fmt.Println("r", r)
 			defer cr.Close()
 		}
 
@@ -96,7 +92,6 @@ func GzipMiddleware(h http.Handler) http.Handler {
 
 		if supportsGzip {
 			ow.Header().Set("Content-Encoding", "gzip")
-			ow.Header().Set("Vary", "Accept-Encoding")
 
 			cw := newCompressWriter(w)
 			ow = cw
