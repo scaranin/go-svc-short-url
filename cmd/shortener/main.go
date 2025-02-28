@@ -10,54 +10,62 @@ import (
 
 const contentTypeTextPlain string = "text/plain"
 
-var mapURL map[string]string
+var mapURL = make(map[string]string)
 
 func getHandle(res http.ResponseWriter, req *http.Request) {
+
+	res.Header().Set("content-type", contentTypeTextPlain)
+
 	shortURL := strings.TrimPrefix(req.URL.Path, "/")
 
 	var url string
 	if len([]rune(shortURL)) != 0 {
 		url = getURL(shortURL)
 	} else {
-		http.Error(res, "Nil value", http.StatusBadRequest)
+		http.Error(res, "Empty value", http.StatusBadRequest)
 		return
 	}
-	res.Header().Set("content-type", contentTypeTextPlain)
 	res.Header().Set("Location", url)
 	res.WriteHeader(http.StatusTemporaryRedirect)
 }
 
 func postHandle(res http.ResponseWriter, req *http.Request) {
+
+	res.Header().Set("content-type", contentTypeTextPlain)
+
 	contentType := req.Header.Get("content-type")
+
 	if !strings.Contains(contentType, contentTypeTextPlain) {
 		http.Error(res, contentType+" not supported", http.StatusBadRequest)
 		return
 	}
 
 	var err error
-	res.Header().Set("content-type", contentTypeTextPlain)
-
 	url, err := io.ReadAll(req.Body)
+
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	if len(url) == 0 {
-		http.Error(res, "Nil value", http.StatusBadRequest)
+		http.Error(res, "Empty value", http.StatusBadRequest)
 		return
 	}
-	shortURL := addShortURL(string(url))
 
+	shortURL := addShortURL(string(url))
 	res.WriteHeader(http.StatusCreated)
 	res.Write([]byte("http://localhost:8080/" + shortURL))
 }
 
 func addShortURL(url string) string {
 	hasher := sha1.New()
+
 	hasher.Write([]byte(url))
+
 	shortURL := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 	mapURL[shortURL] = url
+
 	return shortURL
 }
 
@@ -77,7 +85,6 @@ func routeHandle(res http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-	mapURL = make(map[string]string)
 	mux := http.NewServeMux()
 	mux.HandleFunc(`/`, routeHandle)
 
