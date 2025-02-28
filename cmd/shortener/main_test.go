@@ -1,30 +1,17 @@
 package main
 
 import (
-	"flag"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/scaranin/go-svc-short-url/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var ()
-
-func setVariables() {
-	netCfg := config.New()
-
-	flag.StringVar(&netCfg.ServerURL, "a", "localhost:8080", "Server URL")
-	flag.StringVar(&netCfg.BaseURL, "b", "http://localhost:8080/", "Base URL")
-	flag.Parse()
-
-	serverURL = netCfg.ServerURL
-	baseURL = netCfg.BaseURL
-}
 
 func Test_getHandle(t *testing.T) {
 	type want struct {
@@ -107,7 +94,7 @@ func Test_postHandle(t *testing.T) {
 			},
 		},
 	}
-	setVariables()
+	setParams()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.want.request))
