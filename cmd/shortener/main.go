@@ -3,44 +3,23 @@ package main
 import (
 	"crypto/sha1"
 	"encoding/base64"
+	"flag"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
 
 	"github.com/go-chi/chi"
+	"github.com/scaranin/go-svc-short-url/internal/config"
 )
 
 const contentTypeTextPlain string = "text/plain"
 
-var mapURL = make(map[string]string)
-
-/*
-func getHandle(res http.ResponseWriter, req *http.Request) {
-	res.Header().Set("content-type", contentTypeTextPlain)
-	reqBody, err := io.ReadAll(req.Body)
-	defer req.Body.Close()
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
-		return
-	}
-	shortURL := strings.TrimPrefix(string(reqBody), "/")
-	var url string
-	if len([]rune(shortURL)) != 0 {
-		url = getURL(shortURL)
-	} else {
-		http.Error(res, "Empty value", http.StatusBadRequest)
-		return
-	}
-	//middleware.SetHeader(key, value))
-	//middleware.SetHeader("content-type", contentTypeTextPlain)
-	//middleware.SetHeader("Location", url)
-	res.Header().Set("content-type", contentTypeTextPlain)
-	res.Header().Set("Location", url)
-	res.WriteHeader(http.StatusTemporaryRedirect)
-	res.Write([]byte(url))
-	fmt.Println(res)
-}
-*/
+var (
+	mapURL    = make(map[string]string)
+	serverURL string
+	baseURL   string
+)
 
 func getHandle(res http.ResponseWriter, req *http.Request) {
 
@@ -87,7 +66,7 @@ func postHandle(res http.ResponseWriter, req *http.Request) {
 	shortURL := addShortURL(string(url))
 
 	res.WriteHeader(http.StatusCreated)
-	res.Write([]byte("http://localhost:8080/" + shortURL))
+	res.Write([]byte(baseURL + shortURL))
 }
 
 func addShortURL(url string) string {
@@ -116,20 +95,18 @@ func routeHandle(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-/*
 func main() {
-	mapURL = make(map[string]string)
-	mux := http.NewServeMux()
-	mux.HandleFunc(`/`, routeHandle)
+	netCfg := config.New()
 
-	err := http.ListenAndServe(`:8080`, mux)
-	if err != nil {
-		panic(err)
-	}
-}
-*/
+	flag.StringVar(&netCfg.ServerURL, "a", "localhost:8080", "Server URL")
+	flag.StringVar(&netCfg.BaseURL, "b", "http://localhost:8080", "Base URL")
+	flag.Parse()
 
-func main() {
+	serverURL = netCfg.ServerURL
+	baseURL = netCfg.BaseURL + "/"
+	fmt.Println(serverURL)
+	fmt.Println(baseURL)
+
 	req := chi.NewRouter()
 
 	req.Route(`/`, func(req chi.Router) {
@@ -140,7 +117,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc(`/`, routeHandle)
 
-	err := http.ListenAndServe(":8080", mux)
+	err := http.ListenAndServe(serverURL, mux)
 	if err != nil {
 		panic(err)
 	}
