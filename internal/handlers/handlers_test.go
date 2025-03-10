@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/scaranin/go-svc-short-url/internal/config"
+	"github.com/scaranin/go-svc-short-url/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -44,8 +46,11 @@ func TestURLHandler_GetHandle(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			cfg := config.CreateConfig()
+			store := storage.CreateStore(cfg.FileStoragePath)
+			defer store.Close()
+			h1 := CreateHandle(cfg, store)
 
-			h1 := CreateConfig()
 			reqPost := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.want.location))
 			reqPost.Header.Set("Content-Type", tt.want.contentType)
 			recPost := httptest.NewRecorder()
@@ -103,7 +108,10 @@ func TestURLHandler_PostHandle(t *testing.T) {
 		},
 	}
 
-	h := CreateConfig()
+	cfg := config.CreateConfig()
+	store := storage.CreateStore(cfg.FileStoragePath)
+	defer store.Close()
+	h := CreateHandle(cfg, store)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.want.request))
@@ -153,7 +161,10 @@ func TestURLHandler_PostHandleJson(t *testing.T) {
 			},
 		},
 	}
-	h := CreateConfig()
+	cfg := config.CreateConfig()
+	store := storage.CreateStore(cfg.FileStoragePath)
+	defer store.Close()
+	h := CreateHandle(cfg, store)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/api/shorten", strings.NewReader(tt.want.request))
