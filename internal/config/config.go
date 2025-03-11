@@ -15,7 +15,7 @@ type ShortenerConfig struct {
 }
 
 func New() *ShortenerConfig {
-	return &ShortenerConfig{ServerURL: "localhost:8080", BaseURL: "http://localhost:8080", FileStoragePath: "BaseFile.json"}
+	return &ShortenerConfig{ServerURL: "localhost:8080", BaseURL: "http://localhost:8080", FileStoragePath: "BaseFile.json", DSN: "postgres://postgres:admin@localhost:5432/postgres"}
 
 }
 
@@ -40,7 +40,8 @@ func CreateConfig() ShortenerConfig {
 		flag.StringVar(&NetCfg.FileStoragePath, "f", "BaseFile.json", "Base URL")
 	}
 	if flag.Lookup("d") == nil {
-		flag.StringVar(&NetCfg.DSN, "d", "postgres://admin:admin@localhost:5432/PGDEV", "DataBase DSN")
+		flag.StringVar(&NetCfg.DSN, "d", "postgres://postgres:admin@localhost:5432/postgres", "DataBase DSN")
+
 	}
 	flag.Parse()
 
@@ -58,7 +59,7 @@ func CreateConfig() ShortenerConfig {
 		Cfg.FileStoragePath = NetCfg.FileStoragePath
 	}
 
-	if len(Cfg.FileStoragePath) == 0 {
+	if len(Cfg.DSN) == 0 {
 		Cfg.DSN = NetCfg.DSN
 	}
 

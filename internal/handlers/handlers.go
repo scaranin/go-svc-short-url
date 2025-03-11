@@ -138,9 +138,17 @@ func (h *URLHandler) Load(shortURL string) string {
 func (h *URLHandler) PingHandle(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", contentTypeTextPlain)
+
 	pool, err := pgxpool.New(r.Context(), h.DSN)
+
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	err = pool.Ping(r.Context())
+	if pool.Ping(r.Context()) != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 	defer pool.Close()
 

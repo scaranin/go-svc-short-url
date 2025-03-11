@@ -13,6 +13,7 @@ import (
 func main() {
 
 	cfg := config.CreateConfig()
+
 	store := storage.CreateStore(cfg.FileStoragePath)
 	defer store.Close()
 	h := handlers.CreateHandle(cfg, store)
