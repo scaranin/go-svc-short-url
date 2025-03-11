@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/scaranin/go-svc-short-url/internal/config"
 	"github.com/scaranin/go-svc-short-url/internal/models"
 	"github.com/scaranin/go-svc-short-url/internal/storage"
@@ -23,6 +24,7 @@ type URLHandler struct {
 	UrlMap       map[string]string
 	BaseURL      string
 	FileProducer *models.Producer
+	DSN          string
 }
 
 func CreateHandle(cfg config.ShortenerConfig, store storage.BaseFileJSON) URLHandler {
@@ -30,6 +32,7 @@ func CreateHandle(cfg config.ShortenerConfig, store storage.BaseFileJSON) URLHan
 	h.UrlMap = storage.GetDataFromFile(store.Consumer)
 	h.BaseURL = cfg.BaseURL
 	h.FileProducer = store.Producer
+	h.DSN = cfg.DSN
 	return h
 }
 
@@ -130,4 +133,17 @@ func (h *URLHandler) GetHandle(w http.ResponseWriter, r *http.Request) {
 
 func (h *URLHandler) Load(shortURL string) string {
 	return h.UrlMap[shortURL]
+}
+
+func (h *URLHandler) Ping(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", contentTypeTextPlain)
+	pool, err := pgxpool.New(r.Context(), h.DSN)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+	defer pool.Close()
+
+	w.WriteHeader(http.StatusOK)
+
 }

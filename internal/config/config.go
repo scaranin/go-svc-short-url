@@ -11,6 +11,7 @@ type ShortenerConfig struct {
 	ServerURL       string `env:"SERVER_ADDRESS"`
 	BaseURL         string `env:"BASE_URL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	DSN             string `env:"DATABASE_DSN"`
 }
 
 func New() *ShortenerConfig {
@@ -38,6 +39,9 @@ func CreateConfig() ShortenerConfig {
 	if flag.Lookup("f") == nil {
 		flag.StringVar(&NetCfg.FileStoragePath, "f", "BaseFile.json", "Base URL")
 	}
+	if flag.Lookup("d") == nil {
+		flag.StringVar(&NetCfg.DSN, "d", "postgres://admin:admin@localhost:5432/PGDEV", "DataBase DSN")
+	}
 	flag.Parse()
 
 	if len(Cfg.ServerURL) == 0 {
@@ -52,6 +56,10 @@ func CreateConfig() ShortenerConfig {
 
 	if len(Cfg.FileStoragePath) == 0 {
 		Cfg.FileStoragePath = NetCfg.FileStoragePath
+	}
+
+	if len(Cfg.FileStoragePath) == 0 {
+		Cfg.DSN = NetCfg.DSN
 	}
 
 	return Cfg
