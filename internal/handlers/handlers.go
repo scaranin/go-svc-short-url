@@ -21,7 +21,7 @@ const (
 )
 
 type URLHandler struct {
-	UrlMap       map[string]string
+	URLMap       map[string]string
 	BaseURL      string
 	FileProducer *models.Producer
 	DSN          string
@@ -29,7 +29,7 @@ type URLHandler struct {
 
 func CreateHandle(cfg config.ShortenerConfig, store storage.BaseFileJSON) URLHandler {
 	var h URLHandler
-	h.UrlMap = storage.GetDataFromFile(store.Consumer)
+	h.URLMap = storage.GetDataFromFile(store.Consumer)
 	h.BaseURL = cfg.BaseURL
 	h.FileProducer = store.Producer
 	h.DSN = cfg.DSN
@@ -107,8 +107,8 @@ func (h *URLHandler) Save(url string) string {
 	hasher.Write([]byte(url))
 
 	shortURL := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
-	if _, found := h.UrlMap[shortURL]; !found {
-		h.UrlMap[shortURL] = url
+	if _, found := h.URLMap[shortURL]; !found {
+		h.URLMap[shortURL] = url
 		var baseURL = models.URL{URL: url, ShortURL: h.BaseURL + "/" + shortURL}
 		h.FileProducer.AddURL(&baseURL)
 	}
@@ -132,7 +132,7 @@ func (h *URLHandler) GetHandle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *URLHandler) Load(shortURL string) string {
-	return h.UrlMap[shortURL]
+	return h.URLMap[shortURL]
 }
 
 func (h *URLHandler) PingHandle(w http.ResponseWriter, r *http.Request) {
