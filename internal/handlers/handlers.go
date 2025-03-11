@@ -135,7 +135,7 @@ func (h *URLHandler) Load(shortURL string) string {
 	return h.UrlMap[shortURL]
 }
 
-func (h *URLHandler) Ping(w http.ResponseWriter, r *http.Request) {
+func (h *URLHandler) PingHandle(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", contentTypeTextPlain)
 	pool, err := pgxpool.New(r.Context(), h.DSN)
