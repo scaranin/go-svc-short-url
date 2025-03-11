@@ -145,7 +145,6 @@ func (h *URLHandler) PingHandle(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	err = pool.Ping(r.Context())
 	if pool.Ping(r.Context()) != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
