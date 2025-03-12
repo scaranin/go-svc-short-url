@@ -115,7 +115,7 @@ func (h *URLHandler) GetHandle(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Empty value", http.StatusBadRequest)
 		return
 	}
-	w.Header().Set("Location", originalURL)
+	w.Header().Add("Location", originalURL)
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 

@@ -62,7 +62,6 @@ func CreateStoreDB(DSN string) (DBStorage, error) {
 		return dbStore, err
 	}
 	dbStore.PGXPool = pool
-	//defer dbStore.Close()
 
 	err = dbStore.Ping(ctx)
 	if err != nil {

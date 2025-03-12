@@ -73,14 +73,21 @@ func CreateStore(cfg ShortenerConfig) (models.Storage, bool) {
 	if len(cfg.DSN) > 0 {
 		store, err := storage.CreateStoreDB(cfg.DSN)
 		if err == nil {
-			return store, true
-		}
-
-	} else if len(cfg.FileStoragePath) > 0 {
-		store, err := storage.CreateStoreFile(cfg.FileStoragePath)
-		if err == nil {
+			log.Println("DBStoreMode")
 			return store, true
 		}
 	}
+	if len(cfg.FileStoragePath) > 0 {
+		log.Println("FileStoreMode")
+	} else {
+		log.Println("InMemoryMode")
+	}
+
+	store, err := storage.CreateStoreFile(cfg.FileStoragePath)
+	if err == nil {
+
+		return store, true
+	}
+
 	return store, false
 }

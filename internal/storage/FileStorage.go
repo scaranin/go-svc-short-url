@@ -11,17 +11,20 @@ type FileStorageJSON struct {
 	Producer *models.Producer
 	Consumer *models.Consumer
 	URLMap   map[string]string
+	INMemory bool
 }
 
 func (fs FileStorageJSON) Save(URL *models.URL) error {
-	err := fs.Producer.AddURL(URL)
+	var err error
+	if !fs.INMemory {
+		err = fs.Producer.AddURL(URL)
+	}
 	fs.URLMap[URL.ShortURL] = URL.OriginalURL
 	return err
 }
 
 func (fs FileStorageJSON) Load(shortURL string) (string, bool) {
 	originalURL, found := fs.URLMap[shortURL]
-
 	return originalURL, found
 }
 
@@ -42,6 +45,11 @@ func GetDataFromFile(consumer *models.Consumer) map[string]string {
 
 func CreateStoreFile(fileStoragePath string) (FileStorageJSON, error) {
 	var fs FileStorageJSON
+	fs.URLMap = make(map[string]string)
+	if len(fileStoragePath) == 0 {
+		fs.INMemory = true
+		return fs, nil
+	}
 	Producer, err := models.NewProducer(fileStoragePath)
 	if err != nil {
 		return fs, err
