@@ -14,8 +14,8 @@ type Response struct {
 }
 
 type URL struct {
-	URL      string `json:"url"`
-	ShortURL string `json:"shorturl"`
+	OriginalURL string `json:"url"`
+	ShortURL    string `json:"shorturl"`
 }
 
 type Producer struct {

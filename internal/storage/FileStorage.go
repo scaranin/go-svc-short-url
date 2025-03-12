@@ -10,11 +10,21 @@ import (
 type BaseFileJSON struct {
 	Producer *models.Producer
 	Consumer *models.Consumer
+	URLMap   map[string]string
 }
 
 type Storage interface {
-	Save(URL string)
+	Save(URL *models.URL) error
 	Load(shortURL string) (string, bool)
+}
+
+func (fs BaseFileJSON) Save(URL *models.URL) error {
+	err := fs.Producer.AddURL(URL)
+	return err
+}
+
+func (fs BaseFileJSON) Load(shortURL string) (string, bool) {
+	return fs.URLMap[shortURL], true
 }
 
 func GetDataFromFile(consumer *models.Consumer) map[string]string {
@@ -27,7 +37,7 @@ func GetDataFromFile(consumer *models.Consumer) map[string]string {
 		if err != nil {
 			log.Fatal(err)
 		}
-		urlMap[mURL.ShortURL] = mURL.URL
+		urlMap[mURL.ShortURL] = mURL.OriginalURL
 	}
 	return urlMap
 }
@@ -45,6 +55,7 @@ func CreateStore(fileStoragePath string) BaseFileJSON {
 		log.Fatal(err)
 	}
 	bfj.Consumer = Consumer
+	bfj.URLMap = GetDataFromFile(Consumer)
 	return bfj
 }
 
