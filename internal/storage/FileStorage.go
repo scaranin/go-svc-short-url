@@ -7,24 +7,19 @@ import (
 	"github.com/scaranin/go-svc-short-url/internal/models"
 )
 
-type BaseFileJSON struct {
+type FileStorageJSON struct {
 	Producer *models.Producer
 	Consumer *models.Consumer
 	URLMap   map[string]string
 }
 
-type Storage interface {
-	Save(URL *models.URL) error
-	Load(shortURL string) (string, bool)
-}
-
-func (fs BaseFileJSON) Save(URL *models.URL) error {
+func (fs FileStorageJSON) Save(URL *models.URL) error {
 	err := fs.Producer.AddURL(URL)
 	fs.URLMap[URL.ShortURL] = URL.OriginalURL
 	return err
 }
 
-func (fs BaseFileJSON) Load(shortURL string) (string, bool) {
+func (fs FileStorageJSON) Load(shortURL string) (string, bool) {
 	originalURL, found := fs.URLMap[shortURL]
 
 	return originalURL, found
@@ -45,24 +40,24 @@ func GetDataFromFile(consumer *models.Consumer) map[string]string {
 	return urlMap
 }
 
-func CreateStore(fileStoragePath string) BaseFileJSON {
-	var bfj BaseFileJSON
+func CreateStoreFile(fileStoragePath string) (FileStorageJSON, error) {
+	var fs FileStorageJSON
 	Producer, err := models.NewProducer(fileStoragePath)
 	if err != nil {
-		log.Fatal(err)
+		return fs, err
 	}
-	bfj.Producer = Producer
+	fs.Producer = Producer
 
 	Consumer, err := models.NewConsumer(fileStoragePath)
 	if err != nil {
-		log.Fatal(err)
+		return fs, err
 	}
-	bfj.Consumer = Consumer
-	bfj.URLMap = GetDataFromFile(Consumer)
-	return bfj
+	fs.Consumer = Consumer
+	fs.URLMap = GetDataFromFile(Consumer)
+	return fs, err
 }
 
-func (h *BaseFileJSON) Close() {
-	h.Producer.Close()
-	h.Consumer.Close()
+func (fs *FileStorageJSON) Close() {
+	fs.Producer.Close()
+	fs.Consumer.Close()
 }

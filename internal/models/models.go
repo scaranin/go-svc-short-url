@@ -5,6 +5,11 @@ import (
 	"os"
 )
 
+type Storage interface {
+	Save(URL *URL) error
+	Load(shortURL string) (string, bool)
+}
+
 type Request struct {
 	URL string `json:"url"`
 }

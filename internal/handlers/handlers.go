@@ -12,7 +12,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/scaranin/go-svc-short-url/internal/config"
 	"github.com/scaranin/go-svc-short-url/internal/models"
-	"github.com/scaranin/go-svc-short-url/internal/storage"
 )
 
 const (
@@ -25,10 +24,10 @@ type URLHandler struct {
 	BaseURL      string
 	FileProducer *models.Producer
 	DSN          string
-	Storage      storage.Storage
+	Storage      models.Storage
 }
 
-func CreateHandle(cfg config.ShortenerConfig, store storage.Storage) URLHandler {
+func CreateHandle(cfg config.ShortenerConfig, store models.Storage) URLHandler {
 	var h URLHandler
 	h.BaseURL = cfg.BaseURL
 	h.Storage = store
@@ -132,7 +131,6 @@ func (h *URLHandler) Load(shortURL string) string {
 func (h *URLHandler) PingHandle(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", contentTypeTextPlain)
-
 	pool, err := pgxpool.New(r.Context(), h.DSN)
 
 	if err != nil {
