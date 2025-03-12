@@ -5,7 +5,7 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/go-chi/chi"
@@ -30,11 +30,9 @@ type URLHandler struct {
 
 func CreateHandle(cfg config.ShortenerConfig, store storage.Storage) URLHandler {
 	var h URLHandler
-	//h.URLMap = storage.GetDataFromFile(cfg.FileStoragePath)
 	h.BaseURL = cfg.BaseURL
-	//h.FileProducer = store.Producer
-	h.DSN = cfg.DSN
 	h.Storage = store
+	h.DSN = cfg.DSN
 	return h
 }
 
@@ -67,8 +65,7 @@ func (h *URLHandler) post(w http.ResponseWriter, r *http.Request, postKind strin
 		w.WriteHeader(http.StatusCreated)
 		return
 	}
-
-	shortURL := h.Save(string(url), h.Storage)
+	shortURL := h.Save(string(url))
 
 	if postKind == contentTypeTextPlain {
 		resp = []byte(h.BaseURL + shortURL)
@@ -95,18 +92,15 @@ func (h *URLHandler) PostHandleJSON(w http.ResponseWriter, r *http.Request) {
 	h.post(w, r, contentTypeApJSON)
 }
 
-func (h *URLHandler) Save(originalURL string, store storage.Storage) string {
+func (h *URLHandler) Save(originalURL string) string {
 	hasher := sha1.New()
 
 	hasher.Write([]byte(originalURL))
 
 	shortURL := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
-
-	if _, found := store.Load(shortURL); !found {
-		fmt.Println(shortURL, originalURL)
-		h.URLMap[shortURL] = originalURL
-		var baseURL = models.URL{OriginalURL: originalURL, ShortURL: h.BaseURL + "/" + shortURL}
-		store.Save(&baseURL)
+	if _, found := h.Storage.Load(shortURL); !found {
+		var baseURL = models.URL{OriginalURL: originalURL, ShortURL: shortURL}
+		h.Storage.Save(&baseURL)
 	}
 
 	return shortURL
@@ -115,10 +109,9 @@ func (h *URLHandler) Save(originalURL string, store storage.Storage) string {
 func (h *URLHandler) GetHandle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", contentTypeTextPlain)
 	shortURL := chi.URLParam(r, "shortURL")
-
 	var originalURL string
 	if len(shortURL) != 0 {
-		originalURL = h.Load(shortURL, h.Storage)
+		originalURL = h.Load(shortURL)
 	} else {
 		http.Error(w, "Empty value", http.StatusBadRequest)
 		return
@@ -127,8 +120,8 @@ func (h *URLHandler) GetHandle(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
-func (h *URLHandler) Load(shortURL string, store storage.Storage) string {
-	if res, found := store.Load(shortURL); found {
+func (h *URLHandler) Load(shortURL string) string {
+	if res, found := h.Storage.Load(shortURL); found {
 		return res
 	} else {
 		return ""
@@ -144,10 +137,14 @@ func (h *URLHandler) PingHandle(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		log.Fatal(err)
 		return
 	}
-	if pool.Ping(r.Context()) != nil {
+
+	err = pool.Ping(r.Context())
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		log.Fatal(err)
 		return
 	}
 	defer pool.Close()

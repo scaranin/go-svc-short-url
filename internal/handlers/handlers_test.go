@@ -67,7 +67,6 @@ func TestURLHandler_GetHandle(t *testing.T) {
 				return
 			}
 			defer res.Body.Close()
-
 			assert.Equal(t, tt.want.statusCode, res.StatusCode)
 			assert.Equal(t, tt.want.location, res.Header.Get("Location"))
 		})

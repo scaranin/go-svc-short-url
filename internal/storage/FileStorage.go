@@ -20,11 +20,14 @@ type Storage interface {
 
 func (fs BaseFileJSON) Save(URL *models.URL) error {
 	err := fs.Producer.AddURL(URL)
+	fs.URLMap[URL.ShortURL] = URL.OriginalURL
 	return err
 }
 
 func (fs BaseFileJSON) Load(shortURL string) (string, bool) {
-	return fs.URLMap[shortURL], true
+	originalURL, found := fs.URLMap[shortURL]
+
+	return originalURL, found
 }
 
 func GetDataFromFile(consumer *models.Consumer) map[string]string {
