@@ -115,11 +115,11 @@ func (h *URLHandler) PostHandleJSONBatch(w http.ResponseWriter, r *http.Request)
 
 	for _, pair := range pairRequest {
 		newPair := models.PairResponse{
-			CorrelationId: pair.CorrelationId,
-			ShortURL:      h.BaseURL + h.Save(pair.OriginalURL, pair.CorrelationId),
+			CorrelationID: pair.CorrelationID,
+			ShortURL:      h.BaseURL + h.Save(pair.OriginalURL, pair.CorrelationID),
 		}
 		pairResponse = append(pairResponse, newPair)
-		var URL = models.URL{Correlation_id: pair.CorrelationId, OriginalURL: pair.OriginalURL, ShortURL: ShortURLCalc(pair.OriginalURL)}
+		var URL = models.URL{Correlation_id: pair.CorrelationID, OriginalURL: pair.OriginalURL, ShortURL: ShortURLCalc(pair.OriginalURL)}
 		h.Storage.Save(&URL)
 	}
 
@@ -142,10 +142,10 @@ func ShortURLCalc(originalURL string) string {
 	return base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 }
 
-func (h *URLHandler) Save(originalURL string, correlationId string) string {
+func (h *URLHandler) Save(originalURL string, correlationID string) string {
 	shortURL := ShortURLCalc(originalURL)
 	if _, found := h.Storage.Load(shortURL); !found {
-		var baseURL = models.URL{Correlation_id: correlationId, OriginalURL: originalURL, ShortURL: shortURL}
+		var baseURL = models.URL{Correlation_id: correlationID, OriginalURL: originalURL, ShortURL: shortURL}
 		h.Storage.Save(&baseURL)
 	}
 
