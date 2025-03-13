@@ -24,7 +24,7 @@ func (fs FileStorageJSON) Save(URL *models.URL) (string, error) {
 }
 
 func (fs FileStorageJSON) Load(shortURL string) (string, error) {
-	originalURL, _ := fs.URLMap[shortURL]
+	originalURL := fs.URLMap[shortURL]
 
 	return originalURL, nil
 }
