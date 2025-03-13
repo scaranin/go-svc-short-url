@@ -5,7 +5,6 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -84,7 +83,7 @@ func (h *URLHandler) post(w http.ResponseWriter, r *http.Request, postKind strin
 	w.Header().Set("Content-Type", postKind)
 	pgError, ok := pgErr.(*pgconn.PgError)
 	if ok && pgError.Code == pgerrcode.UniqueViolation {
-		w.WriteHeader(http.StatusCreated)
+		w.WriteHeader(http.StatusConflict)
 	} else {
 		w.WriteHeader(http.StatusCreated)
 	}
@@ -131,7 +130,6 @@ func (h *URLHandler) PostHandleJSONBatch(w http.ResponseWriter, r *http.Request)
 		h.Storage.Save(&URL)
 	}
 
-	fmt.Println("pairResponse", pairResponse)
 	resp, err = json.Marshal(pairResponse)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -151,10 +149,10 @@ func ShortURLCalc(originalURL string) string {
 }
 
 func (h *URLHandler) Save(originalURL string, correlationID string) (string, error) {
+
 	shortURL := ShortURLCalc(originalURL)
 	var baseURL = models.URL{CorrelationID: correlationID, OriginalURL: originalURL, ShortURL: shortURL}
 	shortURL, err := h.Storage.Save(&baseURL)
-
 	return shortURL, err
 }
 

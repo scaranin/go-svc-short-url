@@ -22,8 +22,7 @@ func (dbStore DBStorage) Save(URL *models.URL) (string, error) {
 	)
 	if pgErr, ok := err.(*pgconn.PgError); ok {
 		if pgErr.Code == pgerrcode.UniqueViolation {
-			shortUrl, _ := dbStore.Load(URL.ShortURL)
-			return shortUrl, pgErr
+			return URL.ShortURL, pgErr
 		}
 	}
 	return URL.ShortURL, err
@@ -58,8 +57,15 @@ func (dbStore DBStorage) CreateDBScheme(ctx context.Context) error {
 			err = nil
 		}
 	}
+	if err == nil {
+		_, err = dbStore.PGXPool.Exec(ctx, `CREATE UNIQUE INDEX idx_original_url ON MAP_URL(original_url)`)
+		if pgErr, ok := err.(*pgconn.PgError); ok {
+			if pgErr.Code == pgerrcode.DuplicateTable {
+				err = nil
+			}
+		}
+	}
 	return err
-
 }
 
 func CreateStoreDB(DSN string) (DBStorage, error) {
@@ -80,7 +86,6 @@ func CreateStoreDB(DSN string) (DBStorage, error) {
 	if err != nil {
 		return dbStore, err
 	}
-
 	return dbStore, err
 }
 
