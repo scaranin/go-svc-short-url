@@ -14,18 +14,19 @@ type FileStorageJSON struct {
 	INMemory bool
 }
 
-func (fs FileStorageJSON) Save(URL *models.URL) error {
+func (fs FileStorageJSON) Save(URL *models.URL) (string, error) {
 	var err error
 	if !fs.INMemory {
 		err = fs.Producer.AddURL(URL)
 	}
 	fs.URLMap[URL.ShortURL] = URL.OriginalURL
-	return err
+	return URL.ShortURL, err
 }
 
-func (fs FileStorageJSON) Load(shortURL string) (string, bool) {
-	originalURL, found := fs.URLMap[shortURL]
-	return originalURL, found
+func (fs FileStorageJSON) Load(shortURL string) (string, error) {
+	originalURL, _ := fs.URLMap[shortURL]
+
+	return originalURL, nil
 }
 
 func GetDataFromFile(consumer *models.Consumer) map[string]string {

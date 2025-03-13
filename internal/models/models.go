@@ -6,8 +6,8 @@ import (
 )
 
 type Storage interface {
-	Save(URL *URL) error
-	Load(shortURL string) (string, bool)
+	Save(URL *URL) (string, error)
+	Load(shortURL string) (string, error)
 }
 
 type Request struct {

@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/scaranin/go-svc-short-url/internal/config"
 	"github.com/scaranin/go-svc-short-url/internal/models"
@@ -65,7 +67,7 @@ func (h *URLHandler) post(w http.ResponseWriter, r *http.Request, postKind strin
 		w.WriteHeader(http.StatusCreated)
 		return
 	}
-	shortURL := h.Save(string(url), "")
+	shortURL, pgErr := h.Save(string(url), "")
 
 	if postKind == contentTypeTextPlain {
 		resp = []byte(h.BaseURL + shortURL)
@@ -80,7 +82,12 @@ func (h *URLHandler) post(w http.ResponseWriter, r *http.Request, postKind strin
 	}
 
 	w.Header().Set("Content-Type", postKind)
-	w.WriteHeader(http.StatusCreated)
+	pgError, ok := pgErr.(*pgconn.PgError)
+	if ok && pgError.Code == pgerrcode.UniqueViolation {
+		w.WriteHeader(http.StatusCreated)
+	} else {
+		w.WriteHeader(http.StatusCreated)
+	}
 	w.Write(resp)
 }
 
@@ -114,9 +121,10 @@ func (h *URLHandler) PostHandleJSONBatch(w http.ResponseWriter, r *http.Request)
 	}
 
 	for _, pair := range pairRequest {
+		sourtURL, _ := h.Save(pair.OriginalURL, pair.CorrelationID)
 		newPair := models.PairResponse{
 			CorrelationID: pair.CorrelationID,
-			ShortURL:      h.BaseURL + h.Save(pair.OriginalURL, pair.CorrelationID),
+			ShortURL:      h.BaseURL + sourtURL,
 		}
 		pairResponse = append(pairResponse, newPair)
 		var URL = models.URL{CorrelationID: pair.CorrelationID, OriginalURL: pair.OriginalURL, ShortURL: ShortURLCalc(pair.OriginalURL)}
@@ -142,22 +150,25 @@ func ShortURLCalc(originalURL string) string {
 	return base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 }
 
-func (h *URLHandler) Save(originalURL string, correlationID string) string {
+func (h *URLHandler) Save(originalURL string, correlationID string) (string, error) {
 	shortURL := ShortURLCalc(originalURL)
-	if _, found := h.Storage.Load(shortURL); !found {
-		var baseURL = models.URL{CorrelationID: correlationID, OriginalURL: originalURL, ShortURL: shortURL}
-		h.Storage.Save(&baseURL)
-	}
+	var baseURL = models.URL{CorrelationID: correlationID, OriginalURL: originalURL, ShortURL: shortURL}
+	shortURL, err := h.Storage.Save(&baseURL)
 
-	return shortURL
+	return shortURL, err
 }
 
 func (h *URLHandler) GetHandle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", contentTypeTextPlain)
 	shortURL := chi.URLParam(r, "shortURL")
 	var originalURL string
+	var err error
 	if len(shortURL) != 0 {
-		originalURL = h.Load(shortURL)
+		originalURL, err = h.Load(shortURL)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	} else {
 		http.Error(w, "Empty value", http.StatusBadRequest)
 		return
@@ -166,12 +177,8 @@ func (h *URLHandler) GetHandle(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
-func (h *URLHandler) Load(shortURL string) string {
-	if res, found := h.Storage.Load(shortURL); found {
-		return res
-	} else {
-		return ""
-	}
+func (h *URLHandler) Load(shortURL string) (string, error) {
+	return h.Storage.Load(shortURL)
 
 }
 
