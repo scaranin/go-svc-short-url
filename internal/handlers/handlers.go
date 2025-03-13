@@ -116,7 +116,7 @@ func (h *URLHandler) PostHandleJSONBatch(w http.ResponseWriter, r *http.Request)
 	for _, pair := range pairRequest {
 		newPair := models.PairResponse{
 			CorrelationId: pair.CorrelationId,
-			ShortURL:      ShortURLCalc(pair.OriginalURL),
+			ShortURL:      h.Save(pair.OriginalURL),
 		}
 		pairResponse = append(pairResponse, newPair)
 		var URL = models.URL{Correlation_id: pair.CorrelationId, OriginalURL: pair.OriginalURL, ShortURL: ShortURLCalc(pair.OriginalURL)}
