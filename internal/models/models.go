@@ -19,9 +19,9 @@ type Response struct {
 }
 
 type URL struct {
-	Correlation_ID string `json:"-"`
-	OriginalURL    string `json:"url"`
-	ShortURL       string `json:"shorturl"`
+	CorrelationID string `json:"-"`
+	OriginalURL   string `json:"url"`
+	ShortURL      string `json:"shorturl"`
 }
 
 type PairRequest struct {

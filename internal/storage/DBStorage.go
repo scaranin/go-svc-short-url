@@ -17,7 +17,7 @@ type DBStorage struct {
 func (dbStore DBStorage) Save(URL *models.URL) error {
 	ctx := context.Background()
 	_, err := dbStore.PGXPool.Exec(ctx, "INSERT INTO MAP_URL(correlation_id, short_url, original_url) VALUES (@P_CORR_ID, @P_SHORT_URL, @P_ORIGINAL_URL)",
-		pgx.NamedArgs{"@P_CORR_ID": URL.Correlation_id, "P_SHORT_URL": URL.ShortURL, "P_ORIGINAL_URL": URL.OriginalURL},
+		pgx.NamedArgs{"@P_CORR_ID": URL.CorrelationID, "P_SHORT_URL": URL.ShortURL, "P_ORIGINAL_URL": URL.OriginalURL},
 	)
 	return err
 }
