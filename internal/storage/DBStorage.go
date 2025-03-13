@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -47,7 +48,7 @@ func (dbStore DBStorage) CreateDBScheme(ctx context.Context) error {
 		"original_url" TEXT
       )`)
 	if pgErr, ok := err.(*pgconn.PgError); ok {
-		if pgErr.Code == "42P07" {
+		if pgErr.Code == pgerrcode.DuplicateTable {
 			err = nil
 		}
 	}
