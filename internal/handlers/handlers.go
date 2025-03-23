@@ -202,3 +202,26 @@ func (h *URLHandler) PingHandle(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 }
+
+func (h *URLHandler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", contentTypeTextPlain)
+	pool, err := pgxpool.New(r.Context(), h.DSN)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Fatal(err)
+		return
+	}
+
+	err = pool.Ping(r.Context())
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Fatal(err)
+		return
+	}
+	defer pool.Close()
+
+	w.WriteHeader(http.StatusOK)
+
+}

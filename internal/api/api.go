@@ -7,16 +7,17 @@ import (
 )
 
 func InitRoute(h *handlers.URLHandler) *chi.Mux {
-	req := chi.NewRouter()
-	req.Use(middleware.WithLogging, middleware.GzipMiddleware)
+	mux := chi.NewRouter()
+	mux.Use(middleware.WithLogging, middleware.GzipMiddleware)
 
-	req.Route("/", func(req chi.Router) {
-		req.Post("/", h.PostHandle)
-		req.Post("/api/shorten", h.PostHandleJSON)
-		req.Post("/api/shorten/batch", h.PostHandleJSONBatch)
-		req.Get("/ping", h.PingHandle)
-		req.Get("/{shortURL}", h.GetHandle)
+	mux.Route("/", func(mux chi.Router) {
+		mux.Post("/", h.PostHandle)
+		mux.Post("/api/shorten", h.PostHandleJSON)
+		mux.Post("/api/shorten/batch", h.PostHandleJSONBatch)
+		mux.Get("/api/user/urls", h.GetUserURLs)
+		mux.Get("/ping", h.PingHandle)
+		mux.Get("/{shortURL}", h.GetHandle)
 	})
 
-	return req
+	return mux
 }

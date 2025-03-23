@@ -22,6 +22,7 @@ type URL struct {
 	CorrelationID string `json:"-"`
 	OriginalURL   string `json:"url"`
 	ShortURL      string `json:"shorturl"`
+	UserID        string `json:"-"`
 }
 
 type PairRequest struct {

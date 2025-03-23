@@ -11,15 +11,21 @@ import (
 
 func main() {
 
-	cfg := config.CreateConfig()
+	cfg, err := config.CreateConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	store, _ := config.CreateStore(cfg)
+	store, err := config.CreateStore(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	h := handlers.CreateHandle(cfg, store)
 
-	req := api.InitRoute(&h)
+	mux := api.InitRoute(&h)
 
-	err := http.ListenAndServe(cfg.ServerURL, req)
+	err = http.ListenAndServe(cfg.ServerURL, mux)
 	if err != nil {
 		log.Fatal(err)
 	}

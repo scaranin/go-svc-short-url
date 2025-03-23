@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -46,7 +48,10 @@ func TestURLHandler_GetHandle(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := config.CreateConfig()
+			cfg, err := config.CreateConfig()
+			if err != nil {
+				return
+			}
 			store, err := storage.CreateStoreFile(cfg.FileStoragePath)
 			if err != nil {
 				return
@@ -62,7 +67,9 @@ func TestURLHandler_GetHandle(t *testing.T) {
 			reader := strings.NewReader(``)
 			client := &http.Client{}
 			req := httptest.NewRequest(http.MethodGet, tt.want.request, reader)
-
+			req.RequestURI = ""
+			u, err := url.Parse(tt.want.request)
+			req.URL = u
 			req.Header.Add("Content-Type", tt.want.contentType)
 
 			res, err := client.Do(req)
@@ -110,9 +117,14 @@ func TestURLHandler_PostHandle(t *testing.T) {
 		},
 	}
 
-	cfg := config.CreateConfig()
+	cfg, err := config.CreateConfig()
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
 	store, err := storage.CreateStoreFile(cfg.FileStoragePath)
 	if err != nil {
+		log.Fatal(err)
 		return
 	}
 	defer store.Close()
@@ -166,9 +178,14 @@ func TestURLHandler_PostHandleJson(t *testing.T) {
 			},
 		},
 	}
-	cfg := config.CreateConfig()
+	cfg, err := config.CreateConfig()
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
 	store, err := storage.CreateStoreFile(cfg.FileStoragePath)
 	if err != nil {
+		log.Fatal(err)
 		return
 	}
 	defer store.Close()
