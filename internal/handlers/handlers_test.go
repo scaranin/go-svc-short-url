@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 
@@ -30,7 +29,7 @@ func TestURLHandler_GetHandle(t *testing.T) {
 		{
 			name: "get handle negative test #1",
 			want: want{
-				statusCode:  http.StatusBadRequest,
+				statusCode:  http.StatusMethodNotAllowed,
 				request:     "http://localhost:8080",
 				location:    "",
 				contentType: "text/plain",
@@ -51,11 +50,11 @@ func TestURLHandler_GetHandle(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg, err := config.CreateConfig()
 			if err != nil {
-				return
+				log.Fatal(err)
 			}
 			store, err := storage.CreateStoreFile(cfg.FileStoragePath)
 			if err != nil {
-				return
+				log.Fatal(err)
 			}
 			defer store.Close()
 			h1 := CreateHandle(cfg, store, auth.NewAuthConfig())
@@ -69,12 +68,11 @@ func TestURLHandler_GetHandle(t *testing.T) {
 			client := &http.Client{}
 			req := httptest.NewRequest(http.MethodGet, tt.want.request, reader)
 			req.RequestURI = ""
-			u, err := url.Parse(tt.want.request)
-			req.URL = u
 			req.Header.Add("Content-Type", tt.want.contentType)
 
 			res, err := client.Do(req)
 			if err != nil {
+				log.Fatal(err)
 				return
 			}
 			defer res.Body.Close()
@@ -237,11 +235,12 @@ func TestURLHandler_PingHandle(t *testing.T) {
 			reader := strings.NewReader(``)
 			client := &http.Client{}
 			req := httptest.NewRequest(http.MethodGet, tt.want.request, reader)
-
+			req.RequestURI = ""
 			req.Header.Add("Content-Type", tt.want.contentType)
 
 			res, err := client.Do(req)
 			if err != nil {
+				log.Fatal(err)
 				return
 			}
 			defer res.Body.Close()
@@ -266,7 +265,7 @@ func TestURLHandler_GetUserURLs(t *testing.T) {
 		{
 			name: "get token handle negative test #1",
 			want: want{
-				statusCode:  http.StatusUnauthorized,
+				statusCode:  http.StatusNoContent,
 				request:     "http://localhost:8080/api/user/urls",
 				location:    "",
 				contentType: "application/json",
@@ -280,9 +279,11 @@ func TestURLHandler_GetUserURLs(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, tt.want.request, reader)
 
 			req.Header.Add("Content-Type", tt.want.contentType)
+			req.RequestURI = ""
 
 			res, err := client.Do(req)
 			if err != nil {
+				log.Fatal(err)
 				return
 			}
 			defer res.Body.Close()

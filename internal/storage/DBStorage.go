@@ -62,7 +62,6 @@ func (dbStore DBStorage) GetUserURLList(UserID string) ([]models.URLUserList, er
 		err = rows.Scan(&URLlistItem.ShortURL, &URLlistItem.OriginalURL)
 		if err != nil {
 			log.Fatal(err)
-
 		}
 		URLlist = append(URLlist, URLlistItem)
 	}

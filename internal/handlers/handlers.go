@@ -5,7 +5,6 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -55,7 +54,7 @@ func (h *URLHandler) post(w http.ResponseWriter, r *http.Request, postKind strin
 	cookieR, err := r.Cookie(h.Auth.CookieName)
 	cookieW, err := h.Auth.FillUserReturnCookie(cookieR)
 	http.SetCookie(w, cookieW)
-	fmt.Println(cookieW)
+
 	w.Header().Set("Content-Type", postKind)
 	defer r.Body.Close()
 	_, err = buf.ReadFrom(r.Body)
@@ -168,7 +167,6 @@ func ShortURLCalc(originalURL string) string {
 
 // Save функция, добавляющая в хранилище новую запись
 func (h *URLHandler) Save(originalURL string, correlationID string) (string, error) {
-
 	shortURL := ShortURLCalc(originalURL)
 	var baseURL = models.URL{CorrelationID: correlationID, OriginalURL: originalURL, ShortURL: shortURL, UserID: h.Auth.UserID}
 	shortURL, err := h.Storage.Save(&baseURL)
@@ -230,27 +228,19 @@ func (h *URLHandler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 		err     error
 	)
 	cookieR, err := r.Cookie(h.Auth.CookieName)
-	/*if err != nil {
-		cookieW, err = h.Auth.FillUserReturnCookie(cookieR)
-		//http.Error(w, err.Error(), http.StatusUnauthorized)
-		//return
-	}
-	fmt.Println(cookieR.Value)
-	*/
+
 	cookieW, err = h.Auth.FillUserReturnCookie(cookieR)
-	fmt.Println(cookieW)
+
 	if err == http.ErrNoCookie {
-		http.Error(w, err.Error(), http.StatusNoContent)
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	fmt.Println("userid", h.Auth.UserID)
 	URLList, err := h.Storage.GetUserURLList(h.Auth.UserID)
-	fmt.Println("err", err)
-	fmt.Println("len(URLList)", len(URLList))
+
 	if err != nil || len(URLList) == 0 {
 		http.SetCookie(w, cookieW)
 		w.WriteHeader(http.StatusNoContent)
@@ -263,7 +253,6 @@ func (h *URLHandler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 
 	URLUserListJSON, err := json.Marshal(URLList)
 	if err != nil {
-		fmt.Println(err)
 		http.SetCookie(w, cookieW)
 		w.WriteHeader(http.StatusNoContent)
 		return
