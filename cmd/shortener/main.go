@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/scaranin/go-svc-short-url/internal/api"
+	"github.com/scaranin/go-svc-short-url/internal/auth"
 	"github.com/scaranin/go-svc-short-url/internal/config"
 	"github.com/scaranin/go-svc-short-url/internal/handlers"
 )
@@ -21,7 +22,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	h := handlers.CreateHandle(cfg, store)
+	auth := auth.NewAuthConfig()
+
+	h := handlers.CreateHandle(cfg, store, auth)
 
 	mux := api.InitRoute(&h)
 

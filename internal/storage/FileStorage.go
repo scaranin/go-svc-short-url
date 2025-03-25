@@ -29,6 +29,12 @@ func (fs FileStorageJSON) Load(shortURL string) (string, error) {
 	return originalURL, nil
 }
 
+func (fs FileStorageJSON) GetUserURLList(UserID string) ([]models.URLUserList, error) {
+	var URLList []models.URLUserList
+
+	return URLList, nil
+}
+
 func GetDataFromFile(consumer *models.Consumer) map[string]string {
 	urlMap := make(map[string]string)
 	for {

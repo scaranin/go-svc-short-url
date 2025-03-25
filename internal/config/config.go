@@ -14,7 +14,6 @@ type ShortenerConfig struct {
 	BaseURL         string `env:"BASE_URL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	DSN             string `env:"DATABASE_DSN"`
-	SecretKey       string `env:"SECRET_KEY"`
 }
 
 func New() ShortenerConfig {
@@ -23,7 +22,6 @@ func New() ShortenerConfig {
 		BaseURL:         "http://localhost:8080",
 		FileStoragePath: "BaseFile.json",
 		DSN:             "postgres://postgres:admin@localhost:5432/postgres",
-		SecretKey:       "TcoyZhiv",
 	}
 
 }

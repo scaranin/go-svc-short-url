@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/scaranin/go-svc-short-url/internal/auth"
 	"github.com/scaranin/go-svc-short-url/internal/config"
 	"github.com/scaranin/go-svc-short-url/internal/models"
 )
@@ -21,22 +23,27 @@ const (
 	contentTypeApJSON    string = "application/json"
 )
 
+// Основная структура, содержащая настройки сервиса
 type URLHandler struct {
 	URLMap       map[string]string
 	BaseURL      string
 	FileProducer *models.Producer
 	DSN          string
 	Storage      models.Storage
+	Auth         auth.AuthConfig
 }
 
-func CreateHandle(cfg config.ShortenerConfig, store models.Storage) URLHandler {
+// CreateHandle инициализирует структуру URLHandler
+func CreateHandle(cfg config.ShortenerConfig, store models.Storage, auth auth.AuthConfig) URLHandler {
 	var h URLHandler
 	h.BaseURL = cfg.BaseURL
 	h.Storage = store
 	h.DSN = cfg.DSN
+	h.Auth = auth
 	return h
 }
 
+// post - локальная функция, содержащаю общую логику для post handlers
 func (h *URLHandler) post(w http.ResponseWriter, r *http.Request, postKind string) {
 	var (
 		url  []byte
@@ -45,6 +52,10 @@ func (h *URLHandler) post(w http.ResponseWriter, r *http.Request, postKind strin
 		resp []byte
 		buf  bytes.Buffer
 	)
+	cookieR, err := r.Cookie(h.Auth.CookieName)
+	cookieW, err := h.Auth.FillUserReturnCookie(cookieR)
+	http.SetCookie(w, cookieW)
+	fmt.Println(cookieW)
 	w.Header().Set("Content-Type", postKind)
 	defer r.Body.Close()
 	_, err = buf.ReadFrom(r.Body)
@@ -87,17 +98,21 @@ func (h *URLHandler) post(w http.ResponseWriter, r *http.Request, postKind strin
 	} else {
 		w.WriteHeader(http.StatusCreated)
 	}
+
 	w.Write(resp)
 }
 
+// PostHandle принимает originalURL и возвращает shortURL. Формат text
 func (h *URLHandler) PostHandle(w http.ResponseWriter, r *http.Request) {
 	h.post(w, r, contentTypeTextPlain)
 }
 
+// PostHandleJSON принимает originalURL и возвращает shortURL. Формат JSON
 func (h *URLHandler) PostHandleJSON(w http.ResponseWriter, r *http.Request) {
 	h.post(w, r, contentTypeApJSON)
 }
 
+// PostHandleJSONBatch групповая загрузка данных в хранилище
 func (h *URLHandler) PostHandleJSONBatch(w http.ResponseWriter, r *http.Request) {
 	var (
 		data         []byte
@@ -107,6 +122,8 @@ func (h *URLHandler) PostHandleJSONBatch(w http.ResponseWriter, r *http.Request)
 		resp         []byte
 		buf          bytes.Buffer
 	)
+	cookieR, err := r.Cookie(h.Auth.CookieName)
+	cookieW, err := h.Auth.FillUserReturnCookie(cookieR)
 	_, err = buf.ReadFrom(r.Body)
 	defer r.Body.Close()
 	if err != nil {
@@ -137,21 +154,23 @@ func (h *URLHandler) PostHandleJSONBatch(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.Header().Set("Content-Type", contentTypeApJSON)
+	http.SetCookie(w, cookieW)
 	w.WriteHeader(http.StatusCreated)
 	w.Write(resp)
-
 }
 
+// ShortURLCalc функция расчета сокращенного URL
 func ShortURLCalc(originalURL string) string {
 	hasher := sha1.New()
 	hasher.Write([]byte(originalURL))
 	return base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 }
 
+// Save функция, добавляющая в хранилище новую запись
 func (h *URLHandler) Save(originalURL string, correlationID string) (string, error) {
 
 	shortURL := ShortURLCalc(originalURL)
-	var baseURL = models.URL{CorrelationID: correlationID, OriginalURL: originalURL, ShortURL: shortURL}
+	var baseURL = models.URL{CorrelationID: correlationID, OriginalURL: originalURL, ShortURL: shortURL, UserID: h.Auth.UserID}
 	shortURL, err := h.Storage.Save(&baseURL)
 	return shortURL, err
 }
@@ -180,6 +199,7 @@ func (h *URLHandler) Load(shortURL string) (string, error) {
 
 }
 
+// PingHandle проверяет доступность подключения к БД
 func (h *URLHandler) PingHandle(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", contentTypeTextPlain)
@@ -204,24 +224,33 @@ func (h *URLHandler) PingHandle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *URLHandler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
+	var err error
+	w.Header().Set("Content-Type", contentTypeApJSON)
 
-	w.Header().Set("Content-Type", contentTypeTextPlain)
-	pool, err := pgxpool.New(r.Context(), h.DSN)
-
+	cookieR, err := r.Cookie(h.Auth.CookieName)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Fatal(err)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	cookieW, err := h.Auth.FillUserReturnCookie(cookieR)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	URLList, err := h.Storage.GetUserURLList(h.Auth.UserID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNoContent)
 		return
 	}
 
-	err = pool.Ping(r.Context())
+	URLUserListJSON, err := json.Marshal(URLList)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Fatal(err)
+		http.Error(w, err.Error(), http.StatusNoContent)
 		return
 	}
-	defer pool.Close()
 
-	w.WriteHeader(http.StatusOK)
+	http.SetCookie(w, cookieW)
+	w.WriteHeader(http.StatusCreated)
+	w.Write(URLUserListJSON)
 
 }
