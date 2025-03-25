@@ -51,6 +51,7 @@ func TestURLHandler_GetHandle(t *testing.T) {
 			cfg, err := config.CreateConfig()
 			if err != nil {
 				log.Fatal(err)
+
 			}
 			store, err := storage.CreateStoreFile(cfg.FileStoragePath)
 			if err != nil {
