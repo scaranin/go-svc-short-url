@@ -81,8 +81,8 @@ func (auth *AuthConfig) FillUserReturnCookie(incomeCookie *http.Cookie) (*http.C
 		Value:    resAuthToken,
 		Expires:  time.Now().Add(auth.TokenExp),
 		HttpOnly: true,
-		Secure:   true,
-		Path:     "/",
+		//Secure:   true,
+		Path: "/",
 	}
 	// возвращаем ID пользователя в читаемом виде
 	return cookie, err
