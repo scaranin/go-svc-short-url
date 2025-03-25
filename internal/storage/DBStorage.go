@@ -50,7 +50,7 @@ func (dbStore DBStorage) Ping(ctx context.Context) error {
 func (dbStore DBStorage) GetUserURLList(UserID string) ([]models.URLUserList, error) {
 	ctx := context.Background()
 	rows, err := dbStore.PGXPool.Query(ctx, "select short_url, original_url from MAP_URL WHERE user_id = @P_USER_ID",
-		pgx.NamedArgs{"P_SHORT_URL": UserID},
+		pgx.NamedArgs{"P_USER_ID": UserID},
 	)
 	defer rows.Close()
 

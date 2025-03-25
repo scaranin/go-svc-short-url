@@ -250,7 +250,7 @@ func (h *URLHandler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Println("userid", h.Auth.UserID)
 	URLList, err := h.Storage.GetUserURLList(h.Auth.UserID)
-	if len(URLList) == 0 {
+	if err != nil || len(URLList) == 0 {
 		http.Error(w, err.Error(), http.StatusNoContent)
 		return
 	}
