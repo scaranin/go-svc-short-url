@@ -224,6 +224,8 @@ func (h *URLHandler) PingHandle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *URLHandler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", contentTypeApJSON)
+	fmt.Println(w.Header().Get("Content-Type"))
 	fmt.Println("Мы сюда зашли")
 	fmt.Println("h.Auth.CookieName", h.Auth.CookieName)
 	var err error
