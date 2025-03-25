@@ -52,6 +52,9 @@ func (dbStore DBStorage) GetUserURLList(UserID string) ([]models.URLUserList, er
 	rows, err := dbStore.PGXPool.Query(ctx, "select short_url, original_url from MAP_URL WHERE user_id = @P_USER_ID",
 		pgx.NamedArgs{"P_USER_ID": UserID},
 	)
+	if err != nil {
+		log.Fatal(err)
+	}
 	defer rows.Close()
 
 	var URLlist []models.URLUserList
