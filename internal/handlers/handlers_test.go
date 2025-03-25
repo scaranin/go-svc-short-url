@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/scaranin/go-svc-short-url/internal/auth"
 	"github.com/scaranin/go-svc-short-url/internal/config"
 	"github.com/scaranin/go-svc-short-url/internal/storage"
 	"github.com/stretchr/testify/assert"
@@ -57,7 +58,7 @@ func TestURLHandler_GetHandle(t *testing.T) {
 				return
 			}
 			defer store.Close()
-			h1 := CreateHandle(cfg, store)
+			h1 := CreateHandle(cfg, store, auth.NewAuthConfig())
 
 			reqPost := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.want.location))
 			reqPost.Header.Set("Content-Type", tt.want.contentType)
@@ -128,7 +129,7 @@ func TestURLHandler_PostHandle(t *testing.T) {
 		return
 	}
 	defer store.Close()
-	h := CreateHandle(cfg, store)
+	h := CreateHandle(cfg, store, auth.NewAuthConfig())
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.want.request))
@@ -189,7 +190,7 @@ func TestURLHandler_PostHandleJson(t *testing.T) {
 		return
 	}
 	defer store.Close()
-	h := CreateHandle(cfg, store)
+	h := CreateHandle(cfg, store, auth.NewAuthConfig())
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/api/shorten", strings.NewReader(tt.want.request))
@@ -231,6 +232,47 @@ func TestURLHandler_PingHandle(t *testing.T) {
 		},
 	}
 
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := strings.NewReader(``)
+			client := &http.Client{}
+			req := httptest.NewRequest(http.MethodGet, tt.want.request, reader)
+
+			req.Header.Add("Content-Type", tt.want.contentType)
+
+			res, err := client.Do(req)
+			if err != nil {
+				return
+			}
+			defer res.Body.Close()
+
+			assert.Equal(t, tt.want.statusCode, res.StatusCode)
+
+		})
+	}
+}
+
+func TestURLHandler_GetUserURLs(t *testing.T) {
+	type want struct {
+		statusCode  int
+		request     string
+		location    string
+		contentType string
+	}
+	tests := []struct {
+		name string
+		want want
+	}{
+		{
+			name: "get token handle negative test #1",
+			want: want{
+				statusCode:  http.StatusUnauthorized,
+				request:     "http://localhost:8080/api/user/urls",
+				location:    "",
+				contentType: "application/json",
+			},
+		},
+	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			reader := strings.NewReader(``)
