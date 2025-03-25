@@ -252,6 +252,7 @@ func (h *URLHandler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("err", err)
 	fmt.Println("len(URLList)", len(URLList))
 	if err != nil || len(URLList) == 0 {
+		http.SetCookie(w, cookieW)
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
@@ -263,6 +264,7 @@ func (h *URLHandler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 	URLUserListJSON, err := json.Marshal(URLList)
 	if err != nil {
 		fmt.Println(err)
+		http.SetCookie(w, cookieW)
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
