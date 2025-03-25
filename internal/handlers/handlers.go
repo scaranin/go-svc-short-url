@@ -240,9 +240,13 @@ func (h *URLHandler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 		err     error
 	)
 	cookieR, err := r.Cookie(h.Auth.CookieName)
-
+	if err != nil {
+		w.Write([]byte(err.Error()))
+	}
 	cookieW, err = h.Auth.FillUserReturnCookie(cookieR)
-
+	if err != nil {
+		w.Write([]byte(err.Error()))
+	}
 	if err == http.ErrNoCookie {
 		w.WriteHeader(http.StatusNoContent)
 		return
