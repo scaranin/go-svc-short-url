@@ -226,7 +226,6 @@ func (h *URLHandler) PingHandle(w http.ResponseWriter, r *http.Request) {
 func (h *URLHandler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", contentTypeApJSON)
 	fmt.Println(w.Header().Get("Content-Type"))
-	fmt.Println("Мы сюда зашли")
 	fmt.Println("h.Auth.CookieName", h.Auth.CookieName)
 	var err error
 	w.Header().Set("Content-Type", contentTypeApJSON)
@@ -253,6 +252,10 @@ func (h *URLHandler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 	if err != nil || len(URLList) == 0 {
 		http.Error(w, err.Error(), http.StatusNoContent)
 		return
+	}
+
+	for i := range URLList {
+		URLList[i].ShortURL = h.BaseURL + URLList[i].ShortURL
 	}
 
 	URLUserListJSON, err := json.Marshal(URLList)
