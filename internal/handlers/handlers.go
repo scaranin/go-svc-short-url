@@ -230,12 +230,13 @@ func (h *URLHandler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 		err     error
 	)
 	cookieR, err := r.Cookie(h.Auth.CookieName)
-	if err != nil {
+	/*if err != nil {
 		cookieW, err = h.Auth.FillUserReturnCookie(cookieR)
 		//http.Error(w, err.Error(), http.StatusUnauthorized)
 		//return
 	}
 	fmt.Println(cookieR.Value)
+	*/
 	cookieW, err = h.Auth.FillUserReturnCookie(cookieR)
 	fmt.Println(cookieW)
 	if err == http.ErrNoCookie {
@@ -248,8 +249,10 @@ func (h *URLHandler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Println("userid", h.Auth.UserID)
 	URLList, err := h.Storage.GetUserURLList(h.Auth.UserID)
+	fmt.Println("err", err)
+	fmt.Println("len(URLList)", len(URLList))
 	if err != nil || len(URLList) == 0 {
-		http.Error(w, err.Error(), http.StatusNoContent)
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
@@ -260,7 +263,7 @@ func (h *URLHandler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 	URLUserListJSON, err := json.Marshal(URLList)
 	if err != nil {
 		fmt.Println(err)
-		http.Error(w, err.Error(), http.StatusNoContent)
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
