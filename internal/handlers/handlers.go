@@ -226,31 +226,37 @@ func (h *URLHandler) PingHandle(w http.ResponseWriter, r *http.Request) {
 func (h *URLHandler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 	var err error
 	w.Header().Set("Content-Type", contentTypeApJSON)
-
 	cookieR, err := r.Cookie(h.Auth.CookieName)
+	fmt.Println(cookieR)
 	if err != nil {
+		fmt.Println(err)
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
+	fmt.Println(cookieR.Value)
 	cookieW, err := h.Auth.FillUserReturnCookie(cookieR)
+	fmt.Println(cookieW)
 	if err != nil {
+		fmt.Println(err)
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 	URLList, err := h.Storage.GetUserURLList(h.Auth.UserID)
 	if err != nil {
+		fmt.Println(err)
 		http.Error(w, err.Error(), http.StatusNoContent)
 		return
 	}
 
 	URLUserListJSON, err := json.Marshal(URLList)
 	if err != nil {
+		fmt.Println(err)
 		http.Error(w, err.Error(), http.StatusNoContent)
 		return
 	}
 
 	http.SetCookie(w, cookieW)
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	w.Write(URLUserListJSON)
 
 }
