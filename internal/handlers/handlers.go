@@ -52,7 +52,13 @@ func (h *URLHandler) post(w http.ResponseWriter, r *http.Request, postKind strin
 		buf  bytes.Buffer
 	)
 	cookieR, err := r.Cookie(h.Auth.CookieName)
+	if err != nil {
+		log.Print(err.Error())
+	}
 	cookieW, err := h.Auth.FillUserReturnCookie(cookieR)
+	if err != nil {
+		log.Print(err.Error())
+	}
 	http.SetCookie(w, cookieW)
 
 	w.Header().Set("Content-Type", postKind)
@@ -122,7 +128,13 @@ func (h *URLHandler) PostHandleJSONBatch(w http.ResponseWriter, r *http.Request)
 		buf          bytes.Buffer
 	)
 	cookieR, err := r.Cookie(h.Auth.CookieName)
+	if err != nil {
+		log.Print(err.Error())
+	}
 	cookieW, err := h.Auth.FillUserReturnCookie(cookieR)
+	if err != nil {
+		log.Print(err.Error())
+	}
 	_, err = buf.ReadFrom(r.Body)
 	defer r.Body.Close()
 	if err != nil {
