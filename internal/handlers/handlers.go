@@ -229,6 +229,9 @@ func (h *URLHandler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 	var err error
 	w.Header().Set("Content-Type", contentTypeApJSON)
 	cookieR, err := r.Cookie(h.Auth.CookieName)
+	for _, cooc := range r.Cookies() {
+		fmt.Println(cooc.Name)
+	}
 	fmt.Println(cookieR)
 	if err != nil {
 		fmt.Println(err)
