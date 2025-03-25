@@ -225,25 +225,20 @@ func (h *URLHandler) PingHandle(w http.ResponseWriter, r *http.Request) {
 
 func (h *URLHandler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", contentTypeApJSON)
-	fmt.Println(w.Header().Get("Content-Type"))
-	fmt.Println("h.Auth.CookieName", h.Auth.CookieName)
 	var err error
-	w.Header().Set("Content-Type", contentTypeApJSON)
 	cookieR, err := r.Cookie(h.Auth.CookieName)
-	for _, cooc := range r.Cookies() {
-		fmt.Println(cooc.Name)
-	}
-	fmt.Println(cookieR)
 	if err != nil {
-		fmt.Println(err)
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 	fmt.Println(cookieR.Value)
 	cookieW, err := h.Auth.FillUserReturnCookie(cookieR)
 	fmt.Println(cookieW)
+	if err == http.ErrNoCookie {
+		http.Error(w, err.Error(), http.StatusNoContent)
+		return
+	}
 	if err != nil {
-		fmt.Println(err)
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
