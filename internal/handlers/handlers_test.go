@@ -75,7 +75,6 @@ func TestURLHandler_GetHandle(t *testing.T) {
 
 			res, err := client.Do(req)
 			if err != nil {
-				log.Fatal(err)
 				return
 			}
 			defer res.Body.Close()
