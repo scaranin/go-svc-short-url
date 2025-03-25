@@ -241,6 +241,7 @@ func (h *URLHandler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
+	fmt.Println("userid", h.Auth.UserID)
 	URLList, err := h.Storage.GetUserURLList(h.Auth.UserID)
 	if err != nil {
 		fmt.Println(err)
