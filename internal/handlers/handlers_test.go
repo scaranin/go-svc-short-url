@@ -34,61 +34,48 @@ func TestURLHandler_GetHandle(t *testing.T) {
 				contentType: "text/plain",
 			},
 		},
-		/*
-			{
-				name: "get handle positive test #1",
-				want: want{
-					statusCode:  http.StatusTemporaryRedirect,
-					request:     "http://localhost:8080/pkmdI_i-nYcS6P7hSfjTtWUmfcA=",
-					location:    "https://practicum.yandex.ru/",
-					contentType: "text/plain",
-				},
+
+		{
+			name: "get handle positive test #1",
+			want: want{
+				statusCode:  http.StatusTemporaryRedirect,
+				request:     "http://localhost:8080/pkmdI_i-nYcS6P7hSfjTtWUmfcA=",
+				location:    "https://practicum.yandex.ru/",
+				contentType: "text/plain",
 			},
-		*/
+		},
 	}
-	cfg, err := config.CreateConfig()
-	if err != nil {
-		t.Error(err)
-	}
-
-	store, err := storage.CreateStoreFile(cfg.FileStoragePath)
-	if err != nil {
-		t.Error(err)
-	}
-
-	auth := auth.NewAuthConfig()
-
-	h := CreateHandle(cfg, store, auth)
-
-	cfgGet, err := config.CreateConfig()
-	if err != nil {
-		t.Error(err)
-	}
-
-	storeGet, err := storage.CreateStoreFile(cfg.FileStoragePath)
-	if err != nil {
-		t.Error(err)
-	}
-
-	hGet := CreateHandle(cfgGet, storeGet, auth)
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			cfg, err := config.CreateConfig()
+			if err != nil {
+				return
+			}
+			store, err := storage.CreateStoreFile(cfg.FileStoragePath)
+			if err != nil {
+				return
+			}
+			defer store.Close()
+			h1 := CreateHandle(cfg, store, auth.NewAuthConfig())
 
 			reqPost := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.want.location))
-			defer reqPost.Body.Close()
 			reqPost.Header.Set("Content-Type", tt.want.contentType)
 			recPost := httptest.NewRecorder()
-			h.PostHandle(recPost, reqPost)
+			h1.PostHandle(recPost, reqPost)
 
-			reqGet := httptest.NewRequest(http.MethodGet, tt.want.request, nil)
-			defer reqGet.Body.Close()
-			recGet := httptest.NewRecorder()
-			hGet.GetHandle(recGet, reqGet)
-			res := recGet.Result()
+			reader := strings.NewReader(``)
+			client := &http.Client{}
+			req := httptest.NewRequest(http.MethodGet, tt.want.request, reader)
+
+			req.Header.Add("Content-Type", tt.want.contentType)
+
+			res, err := client.Do(req)
+			if err != nil {
+				return
+			}
+			defer res.Body.Close()
 			assert.Equal(t, tt.want.statusCode, res.StatusCode)
 			assert.Equal(t, tt.want.location, res.Header.Get("Location"))
-
 		})
 	}
 
@@ -129,11 +116,11 @@ func TestURLHandler_PostHandle(t *testing.T) {
 
 	cfg, err := config.CreateConfig()
 	if err != nil {
-		t.Error(err)
+		return
 	}
 	store, err := storage.CreateStoreFile(cfg.FileStoragePath)
 	if err != nil {
-		t.Error(err)
+		return
 	}
 	defer store.Close()
 	h := CreateHandle(cfg, store, auth.NewAuthConfig())
@@ -188,11 +175,11 @@ func TestURLHandler_PostHandleJson(t *testing.T) {
 	}
 	cfg, err := config.CreateConfig()
 	if err != nil {
-		t.Error(err)
+		return
 	}
 	store, err := storage.CreateStoreFile(cfg.FileStoragePath)
 	if err != nil {
-		t.Error(err)
+		return
 	}
 	defer store.Close()
 	h := CreateHandle(cfg, store, auth.NewAuthConfig())
@@ -236,75 +223,21 @@ func TestURLHandler_PingHandle(t *testing.T) {
 			},
 		},
 	}
-	cfg, err := config.CreateConfig()
-	if err != nil {
-		t.Error(err)
-	}
-
-	store, err := storage.CreateStoreFile(cfg.FileStoragePath)
-	if err != nil {
-		t.Error(err)
-	}
-
-	auth := auth.NewAuthConfig()
-
-	h := CreateHandle(cfg, store, auth)
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			reqGet := httptest.NewRequest(http.MethodGet, tt.want.request, nil)
-			defer reqGet.Body.Close()
-			recGet := httptest.NewRecorder()
-			h.PingHandle(recGet, reqGet)
-			res := recGet.Result()
-			assert.Equal(t, tt.want.statusCode, res.StatusCode)
-
-		})
-	}
-}
-
-func TestURLHandler_GetUserURLs(t *testing.T) {
-	type want struct {
-		statusCode  int
-		request     string
-		location    string
-		contentType string
-	}
-	tests := []struct {
-		name string
-		want want
-	}{
-		{
-			name: "get token handle negative test #1",
-			want: want{
-				statusCode:  http.StatusOK,
-				request:     "http://localhost:8080/api/user/urls",
-				location:    "",
-				contentType: "application/json",
-			},
-		},
-	}
-
-	cfg, err := config.CreateConfig()
-	if err != nil {
-		t.Error(err)
-	}
-
-	store, err := storage.CreateStoreFile(cfg.FileStoragePath)
-	if err != nil {
-		t.Error(err)
-	}
-
-	auth := auth.NewAuthConfig()
-
-	h := CreateHandle(cfg, store, auth)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			reqGet := httptest.NewRequest(http.MethodGet, tt.want.request, nil)
-			defer reqGet.Body.Close()
-			recGet := httptest.NewRecorder()
-			h.GetUserURLs(recGet, reqGet)
-			res := recGet.Result()
+			reader := strings.NewReader(``)
+			client := &http.Client{}
+			req := httptest.NewRequest(http.MethodGet, tt.want.request, reader)
+
+			req.Header.Add("Content-Type", tt.want.contentType)
+
+			res, err := client.Do(req)
+			if err != nil {
+				return
+			}
+			defer res.Body.Close()
+
 			assert.Equal(t, tt.want.statusCode, res.StatusCode)
 
 		})

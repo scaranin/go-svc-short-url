@@ -11,6 +11,14 @@ import (
 	"github.com/scaranin/go-svc-short-url/internal/models"
 )
 
+type DBStorageInterface interface {
+	Save(URL *models.URL) (string, error)
+	Load(shortURL string) (string, error)
+	Ping(ctx context.Context) error
+	GetUserURLList(UserID string) ([]models.URLUserList, error)
+	Close()
+}
+
 type DBStorage struct {
 	DSN     string
 	PGXPool *pgxpool.Pool
