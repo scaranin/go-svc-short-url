@@ -241,11 +241,11 @@ func (h *URLHandler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 	)
 	cookieR, err := r.Cookie(h.Auth.CookieName)
 	if err != nil {
-		w.Write([]byte(err.Error()))
+		log.Print(err.Error())
 	}
 	cookieW, err = h.Auth.FillUserReturnCookie(cookieR)
 	if err != nil {
-		w.Write([]byte(err.Error()))
+		log.Fatal(err)
 	}
 	if err == http.ErrNoCookie {
 		w.WriteHeader(http.StatusNoContent)
