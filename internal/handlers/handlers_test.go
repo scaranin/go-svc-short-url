@@ -51,7 +51,7 @@ func TestURLHandler_GetHandle(t *testing.T) {
 		t.Error(err)
 	}
 
-	store, err := config.CreateStore(cfg)
+	store, err := storage.CreateStoreFile(cfg.FileStoragePath)
 	if err != nil {
 		t.Error(err)
 	}
@@ -65,7 +65,7 @@ func TestURLHandler_GetHandle(t *testing.T) {
 		t.Error(err)
 	}
 
-	storeGet, err := config.CreateStore(cfg)
+	storeGet, err := storage.CreateStoreFile(cfg.FileStoragePath)
 	if err != nil {
 		t.Error(err)
 	}
@@ -241,7 +241,7 @@ func TestURLHandler_PingHandle(t *testing.T) {
 		t.Error(err)
 	}
 
-	store, err := config.CreateStore(cfg)
+	store, err := storage.CreateStoreFile(cfg.FileStoragePath)
 	if err != nil {
 		t.Error(err)
 	}
@@ -289,7 +289,7 @@ func TestURLHandler_GetUserURLs(t *testing.T) {
 		t.Error(err)
 	}
 
-	store, err := config.CreateStore(cfg)
+	store, err := storage.CreateStoreFile(cfg.FileStoragePath)
 	if err != nil {
 		t.Error(err)
 	}
