@@ -47,7 +47,7 @@ func CreateConfig() (ShortenerConfig, error) {
 		flag.StringVar(&NetCfg.FileStoragePath, "f", "BaseFile.json", "Base URL")
 	}
 	if flag.Lookup("d") == nil {
-		flag.StringVar(&NetCfg.DSN, "d", "postgres://postgres:admin@localhost:5432/postgres", "DataBase DSN")
+		flag.StringVar(&NetCfg.DSN, "d", "postgres://postgres:postgres@localhost:5432/postgres", "DataBase DSN")
 	}
 	flag.Parse()
 
