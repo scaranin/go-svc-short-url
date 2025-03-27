@@ -17,6 +17,7 @@ func InitRoute(h *handlers.URLHandler) *chi.Mux {
 		mux.Get("/api/user/urls", h.GetUserURLs)
 		mux.Get("/ping", h.PingHandle)
 		mux.Get("/{shortURL}", h.GetHandle)
+		mux.Delete("/api/user/urls", h.DeleteHandle)
 	})
 
 	return mux

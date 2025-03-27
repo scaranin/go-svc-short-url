@@ -3,6 +3,7 @@ package storage
 import (
 	"io"
 	"log"
+	"sync"
 
 	"github.com/scaranin/go-svc-short-url/internal/models"
 )
@@ -12,9 +13,12 @@ type FileStorageJSON struct {
 	Consumer *models.Consumer
 	URLMap   map[string]string
 	INMemory bool
+	mux      sync.RWMutex
 }
 
 func (fs FileStorageJSON) Save(URL *models.URL) (string, error) {
+	fs.mux.Lock()
+	defer fs.mux.Unlock()
 	var err error
 	if !fs.INMemory {
 		err = fs.Producer.AddURL(URL)
@@ -24,6 +28,8 @@ func (fs FileStorageJSON) Save(URL *models.URL) (string, error) {
 }
 
 func (fs FileStorageJSON) Load(shortURL string) (string, error) {
+	fs.mux.RLock()
+	defer fs.mux.RUnlock()
 	originalURL := fs.URLMap[shortURL]
 
 	return originalURL, nil
@@ -33,6 +39,10 @@ func (fs FileStorageJSON) GetUserURLList(UserID string) ([]models.URLUserList, e
 	var URLList []models.URLUserList
 
 	return URLList, nil
+}
+
+func (fs FileStorageJSON) DeleteBulk(UserID string, ShortURLs []string) error {
+	return nil
 }
 
 func GetDataFromFile(consumer *models.Consumer) map[string]string {
@@ -52,6 +62,8 @@ func GetDataFromFile(consumer *models.Consumer) map[string]string {
 
 func CreateStoreFile(fileStoragePath string) (FileStorageJSON, error) {
 	var fs FileStorageJSON
+	fs.mux.Lock()
+	defer fs.mux.Unlock()
 	fs.URLMap = make(map[string]string)
 	if len(fileStoragePath) == 0 {
 		fs.INMemory = true
