@@ -311,7 +311,6 @@ func (h *URLHandler) DeleteHandle(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 	finalCh := make(chan string, 1024)
-	//defer close(finalCh)
 
 	var ShortURLs []string
 	if err := json.NewDecoder(r.Body).Decode(&ShortURLs); err != nil {
@@ -321,7 +320,6 @@ func (h *URLHandler) DeleteHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	go func(ShortURLs []string) {
-		// получаем данные из канала
 		for _, shortURL := range ShortURLs {
 			finalCh <- shortURL
 

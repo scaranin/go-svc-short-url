@@ -100,11 +100,9 @@ func (dbStore DBStorage) DeleteBulk(UserID string, ShortURLs []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(ShortURLs)
 	defer tx.Rollback(ctx)
 	_, err = tx.Prepare(ctx, "SetIsDeleted", "UPDATE MAP_URL set is_deleted = true where short_url = $1 and user_id = $2")
 	if err != nil {
-		fmt.Println(err.Error())
 		return err
 	}
 
