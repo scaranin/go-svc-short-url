@@ -9,6 +9,7 @@ type Storage interface {
 	Save(URL *URL) (string, error)
 	Load(shortURL string) (string, error)
 	GetUserURLList(UserID string) ([]URLUserList, error)
+	DeleteBulk(UserID string, ShortURLs []string) error
 }
 
 type Request struct {

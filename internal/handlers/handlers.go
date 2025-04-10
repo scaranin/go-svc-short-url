@@ -193,8 +193,13 @@ func (h *URLHandler) GetHandle(w http.ResponseWriter, r *http.Request) {
 	if len(shortURL) != 0 {
 		originalURL, err = h.Load(shortURL)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+			if err.Error() == "ROW_IS_DELETED" {
+				w.WriteHeader(http.StatusGone)
+				return
+			} else {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 	} else {
 		http.Error(w, "Empty value", http.StatusBadRequest)
@@ -278,4 +283,51 @@ func (h *URLHandler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write(URLUserListJSON)
 
+}
+
+func (h *URLHandler) DelBatch(shortURLchan <-chan string) {
+	var shortURLs []string
+	for req := range shortURLchan {
+		shortURLs = append(shortURLs, req)
+
+		h.Storage.DeleteBulk(h.Auth.UserID, shortURLs)
+		shortURLs = nil
+	}
+}
+
+func (h *URLHandler) DeleteHandle(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", contentTypeApJSON)
+	var (
+		cookieW *http.Cookie
+		err     error
+	)
+	cookieR, err := r.Cookie(h.Auth.CookieName)
+	if err != nil {
+		log.Print(err.Error())
+	}
+
+	cookieW, err = h.Auth.FillUserReturnCookie(cookieR)
+	if err != nil {
+		log.Fatal(err)
+	}
+	finalCh := make(chan string, 1024)
+
+	var ShortURLs []string
+	if err := json.NewDecoder(r.Body).Decode(&ShortURLs); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	go func(ShortURLs []string) {
+		for _, shortURL := range ShortURLs {
+			finalCh <- shortURL
+
+		}
+	}(ShortURLs)
+
+	go h.DelBatch(finalCh)
+
+	http.SetCookie(w, cookieW)
+	w.WriteHeader(http.StatusAccepted)
 }

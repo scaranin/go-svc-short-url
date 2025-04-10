@@ -35,6 +35,10 @@ func (fs FileStorageJSON) GetUserURLList(UserID string) ([]models.URLUserList, e
 	return URLList, nil
 }
 
+func (fs FileStorageJSON) DeleteBulk(UserID string, ShortURLs []string) error {
+	return nil
+}
+
 func GetDataFromFile(consumer *models.Consumer) map[string]string {
 	urlMap := make(map[string]string)
 	for {
