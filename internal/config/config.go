@@ -16,18 +16,23 @@ type ShortenerConfig struct {
 	DSN             string `env:"DATABASE_DSN"`
 }
 
-func New() *ShortenerConfig {
-	return &ShortenerConfig{ServerURL: "localhost:8080", BaseURL: "http://localhost:8080", FileStoragePath: "BaseFile.json", DSN: "postgres://postgres:admin@localhost:5432/postgres"}
+func New() ShortenerConfig {
+	return ShortenerConfig{
+		ServerURL:       "localhost:8080",
+		BaseURL:         "http://localhost:8080",
+		FileStoragePath: "BaseFile.json",
+		DSN:             "postgres://postgres:admin@localhost:5432/postgres",
+	}
 
 }
 
-func CreateConfig() ShortenerConfig {
+func CreateConfig() (ShortenerConfig, error) {
 	var Cfg ShortenerConfig
 
 	err := env.Parse(&Cfg)
 
 	if err != nil {
-		log.Fatal(err)
+		return Cfg, err
 	}
 
 	NetCfg := New()
@@ -43,7 +48,6 @@ func CreateConfig() ShortenerConfig {
 	}
 	if flag.Lookup("d") == nil {
 		flag.StringVar(&NetCfg.DSN, "d", "postgres://postgres:admin@localhost:5432/postgres", "DataBase DSN")
-
 	}
 	flag.Parse()
 
@@ -65,7 +69,7 @@ func CreateConfig() ShortenerConfig {
 		Cfg.DSN = NetCfg.DSN
 	}
 
-	return Cfg
+	return Cfg, err
 }
 
 func CreateStore(cfg ShortenerConfig) (models.Storage, error) {

@@ -8,6 +8,7 @@ import (
 type Storage interface {
 	Save(URL *URL) (string, error)
 	Load(shortURL string) (string, error)
+	GetUserURLList(UserID string) ([]URLUserList, error)
 }
 
 type Request struct {
@@ -22,6 +23,7 @@ type URL struct {
 	CorrelationID string `json:"-"`
 	OriginalURL   string `json:"url"`
 	ShortURL      string `json:"shorturl"`
+	UserID        string `json:"-"`
 }
 
 type PairRequest struct {
@@ -32,6 +34,11 @@ type PairRequest struct {
 type PairResponse struct {
 	CorrelationID string `json:"correlation_id"`
 	ShortURL      string `json:"short_url"`
+}
+
+type URLUserList struct {
+	ShortURL    string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
 }
 
 type Producer struct {

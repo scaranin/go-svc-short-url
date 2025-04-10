@@ -5,21 +5,30 @@ import (
 	"net/http"
 
 	"github.com/scaranin/go-svc-short-url/internal/api"
+	"github.com/scaranin/go-svc-short-url/internal/auth"
 	"github.com/scaranin/go-svc-short-url/internal/config"
 	"github.com/scaranin/go-svc-short-url/internal/handlers"
 )
 
 func main() {
 
-	cfg := config.CreateConfig()
+	cfg, err := config.CreateConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	store, _ := config.CreateStore(cfg)
+	store, err := config.CreateStore(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	h := handlers.CreateHandle(cfg, store)
+	auth := auth.NewAuthConfig()
 
-	req := api.InitRoute(&h)
+	h := handlers.CreateHandle(cfg, store, auth)
 
-	err := http.ListenAndServe(cfg.ServerURL, req)
+	mux := api.InitRoute(&h)
+
+	err = http.ListenAndServe(cfg.ServerURL, mux)
 	if err != nil {
 		log.Fatal(err)
 	}
