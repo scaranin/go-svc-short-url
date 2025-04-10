@@ -5,6 +5,11 @@ import (
 	"os"
 )
 
+type Storage interface {
+	Save(URL *URL) error
+	Load(shortURL string) (string, bool)
+}
+
 type Request struct {
 	URL string `json:"url"`
 }
@@ -14,8 +19,8 @@ type Response struct {
 }
 
 type URL struct {
-	URL      string `json:"url"`
-	ShortURL string `json:"shorturl"`
+	OriginalURL string `json:"url"`
+	ShortURL    string `json:"shorturl"`
 }
 
 type Producer struct {

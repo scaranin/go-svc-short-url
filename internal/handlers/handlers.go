@@ -5,14 +5,13 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/json"
-	"io"
+	"log"
 	"net/http"
 
 	"github.com/go-chi/chi"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/scaranin/go-svc-short-url/internal/config"
 	"github.com/scaranin/go-svc-short-url/internal/models"
-	"github.com/scaranin/go-svc-short-url/internal/storage"
 )
 
 const (
@@ -25,92 +24,82 @@ type URLHandler struct {
 	BaseURL      string
 	FileProducer *models.Producer
 	DSN          string
+	Storage      models.Storage
 }
 
-func CreateHandle(cfg config.ShortenerConfig, store storage.BaseFileJSON) URLHandler {
+func CreateHandle(cfg config.ShortenerConfig, store models.Storage) URLHandler {
 	var h URLHandler
-	h.URLMap = storage.GetDataFromFile(store.Consumer)
 	h.BaseURL = cfg.BaseURL
-	h.FileProducer = store.Producer
+	h.Storage = store
 	h.DSN = cfg.DSN
 	return h
 }
 
-func (h *URLHandler) PostHandle(w http.ResponseWriter, r *http.Request) {
+func (h *URLHandler) post(w http.ResponseWriter, r *http.Request, postKind string) {
 	var (
-		url []byte
-		err error
+		url  []byte
+		err  error
+		req  models.Request
+		resp []byte
 	)
-	w.Header().Set("Content-Type", contentTypeTextPlain)
-
-	url, err = io.ReadAll(r.Body)
-	if len(url) == 0 {
-		w.WriteHeader(http.StatusCreated)
-		return
-	}
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	shortURL := h.Save(string(url))
-
-	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(h.BaseURL + shortURL))
-
+	w.Header().Set("Content-Type", postKind)
 	defer r.Body.Close()
-
-}
-
-func (h *URLHandler) PostHandleJSON(w http.ResponseWriter, r *http.Request) {
-	var (
-		url []byte
-		err error
-	)
-
-	var req models.Request
 	var buf bytes.Buffer
 	_, err = buf.ReadFrom(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if err = json.Unmarshal(buf.Bytes(), &req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	if postKind == contentTypeTextPlain {
+		url = buf.Bytes()
+	} else if postKind == contentTypeApJSON {
+		if err = json.Unmarshal(buf.Bytes(), &req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		url = []byte(req.URL)
 	}
-	url = []byte(req.URL)
-
-	defer r.Body.Close()
 
 	if len(url) == 0 {
-		http.Error(w, "Empty value", http.StatusBadRequest)
+		w.WriteHeader(http.StatusCreated)
 		return
 	}
-
 	shortURL := h.Save(string(url))
 
-	var res models.Response
-	res.Result = h.BaseURL + shortURL
-	resp, err := json.Marshal(res)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	if postKind == contentTypeTextPlain {
+		resp = []byte(h.BaseURL + shortURL)
+	} else if postKind == contentTypeApJSON {
+		var response models.Response
+		response.Result = h.BaseURL + shortURL
+		resp, err = json.Marshal(response)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
-	w.Header().Set("Content-Type", contentTypeApJSON)
+
+	w.Header().Set("Content-Type", postKind)
 	w.WriteHeader(http.StatusCreated)
 	w.Write(resp)
 }
 
-func (h *URLHandler) Save(url string) string {
+func (h *URLHandler) PostHandle(w http.ResponseWriter, r *http.Request) {
+	h.post(w, r, contentTypeTextPlain)
+}
+
+func (h *URLHandler) PostHandleJSON(w http.ResponseWriter, r *http.Request) {
+	h.post(w, r, contentTypeApJSON)
+}
+
+func (h *URLHandler) Save(originalURL string) string {
 	hasher := sha1.New()
 
-	hasher.Write([]byte(url))
+	hasher.Write([]byte(originalURL))
 
 	shortURL := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
-	if _, found := h.URLMap[shortURL]; !found {
-		h.URLMap[shortURL] = url
-		var baseURL = models.URL{URL: url, ShortURL: h.BaseURL + "/" + shortURL}
-		h.FileProducer.AddURL(&baseURL)
+	if _, found := h.Storage.Load(shortURL); !found {
+		var baseURL = models.URL{OriginalURL: originalURL, ShortURL: shortURL}
+		h.Storage.Save(&baseURL)
 	}
 
 	return shortURL
@@ -119,34 +108,41 @@ func (h *URLHandler) Save(url string) string {
 func (h *URLHandler) GetHandle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", contentTypeTextPlain)
 	shortURL := chi.URLParam(r, "shortURL")
-
-	var url string
+	var originalURL string
 	if len(shortURL) != 0 {
-		url = h.Load(shortURL)
+		originalURL = h.Load(shortURL)
 	} else {
 		http.Error(w, "Empty value", http.StatusBadRequest)
 		return
 	}
-	w.Header().Set("Location", url)
+	w.Header().Add("Location", originalURL)
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
 func (h *URLHandler) Load(shortURL string) string {
-	return h.URLMap[shortURL]
+	if res, found := h.Storage.Load(shortURL); found {
+		return res
+	} else {
+		return ""
+	}
+
 }
 
 func (h *URLHandler) PingHandle(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", contentTypeTextPlain)
-
 	pool, err := pgxpool.New(r.Context(), h.DSN)
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		log.Fatal(err)
 		return
 	}
-	if pool.Ping(r.Context()) != nil {
+
+	err = pool.Ping(r.Context())
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		log.Fatal(err)
 		return
 	}
 	defer pool.Close()

@@ -5,6 +5,8 @@ import (
 	"log"
 
 	"github.com/caarlos0/env"
+	"github.com/scaranin/go-svc-short-url/internal/models"
+	"github.com/scaranin/go-svc-short-url/internal/storage"
 )
 
 type ShortenerConfig struct {
@@ -64,4 +66,28 @@ func CreateConfig() ShortenerConfig {
 	}
 
 	return Cfg
+}
+
+func CreateStore(cfg ShortenerConfig) (models.Storage, bool) {
+	var store models.Storage
+	if len(cfg.DSN) > 0 {
+		store, err := storage.CreateStoreDB(cfg.DSN)
+		if err == nil {
+			log.Println("DBStoreMode")
+			return store, true
+		}
+	}
+	if len(cfg.FileStoragePath) > 0 {
+		log.Println("FileStoreMode")
+	} else {
+		log.Println("InMemoryMode")
+	}
+
+	store, err := storage.CreateStoreFile(cfg.FileStoragePath)
+	if err == nil {
+
+		return store, true
+	}
+
+	return store, false
 }

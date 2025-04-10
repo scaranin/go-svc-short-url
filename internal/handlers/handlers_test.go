@@ -47,7 +47,10 @@ func TestURLHandler_GetHandle(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := config.CreateConfig()
-			store := storage.CreateStore(cfg.FileStoragePath)
+			store, err := storage.CreateStoreFile(cfg.FileStoragePath)
+			if err != nil {
+				return
+			}
 			defer store.Close()
 			h1 := CreateHandle(cfg, store)
 
@@ -67,7 +70,6 @@ func TestURLHandler_GetHandle(t *testing.T) {
 				return
 			}
 			defer res.Body.Close()
-
 			assert.Equal(t, tt.want.statusCode, res.StatusCode)
 			assert.Equal(t, tt.want.location, res.Header.Get("Location"))
 		})
@@ -109,7 +111,10 @@ func TestURLHandler_PostHandle(t *testing.T) {
 	}
 
 	cfg := config.CreateConfig()
-	store := storage.CreateStore(cfg.FileStoragePath)
+	store, err := storage.CreateStoreFile(cfg.FileStoragePath)
+	if err != nil {
+		return
+	}
 	defer store.Close()
 	h := CreateHandle(cfg, store)
 	for _, tt := range tests {
@@ -162,7 +167,10 @@ func TestURLHandler_PostHandleJson(t *testing.T) {
 		},
 	}
 	cfg := config.CreateConfig()
-	store := storage.CreateStore(cfg.FileStoragePath)
+	store, err := storage.CreateStoreFile(cfg.FileStoragePath)
+	if err != nil {
+		return
+	}
 	defer store.Close()
 	h := CreateHandle(cfg, store)
 	for _, tt := range tests {
