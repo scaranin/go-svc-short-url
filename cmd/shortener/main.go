@@ -15,8 +15,9 @@ func main() {
 	req := chi.NewRouter()
 
 	req.Route(`/`, func(req chi.Router) {
-		req.Get(`/{shortURL}`, middleware.WithLogging(h, http.MethodGet))
-		req.Post(`/`, middleware.WithLogging(h, http.MethodPost))
+		req.Get(`/{shortURL}`, middleware.WithLogging(h, "GetShortUrlText"))
+		req.Post(`/`, middleware.WithLogging(h, "PostRootText"))
+		req.Post(`/api/shorten`, middleware.WithLogging(h, "PostApiShortenJson"))
 	})
 
 	err := http.ListenAndServe(h.Cfg.ServerURL, req)

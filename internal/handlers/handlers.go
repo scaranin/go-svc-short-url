@@ -1,10 +1,11 @@
 package handlers
 
 import (
+	"bytes"
 	"crypto/sha1"
 	"encoding/base64"
+	"encoding/json"
 	"flag"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -13,9 +14,11 @@ import (
 	"github.com/caarlos0/env"
 	"github.com/go-chi/chi"
 	"github.com/scaranin/go-svc-short-url/internal/config"
+	"github.com/scaranin/go-svc-short-url/internal/models"
 )
 
 const contentTypeTextPlain string = "text/plain"
+const contentTypeApJSON string = "application/json"
 
 type EnvConfig struct {
 	ServerURL string `env:"SERVER_ADDRESS"`
@@ -63,23 +66,75 @@ func CreateConfig() URLHandler {
 }
 
 func (h *URLHandler) PostHandle(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("content-type", contentTypeTextPlain)
-	contentType := r.Header.Get("content-type")
+	var (
+		url         []byte
+		err         error
+		Header      []string
+		contentType string
+	)
+	Header = strings.Split(r.Header.Get("Content-Type"), ";")
+	contentType = Header[0]
+	w.Header().Set("Content-Type", contentTypeTextPlain)
 
-	if !strings.Contains(contentType, contentTypeTextPlain) {
-		http.Error(w, contentType+" not supported", http.StatusBadRequest)
-		return
+	switch contentType {
+	case contentTypeTextPlain:
+		{
+			url, err = io.ReadAll(r.Body)
+			if len(url) == 0 {
+				w.WriteHeader(http.StatusCreated)
+				return
+			}
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			shortURL := h.addShortURL(string(url))
+
+			w.WriteHeader(http.StatusCreated)
+			w.Write([]byte(h.Cfg.BaseURL + shortURL))
+		}
+	default:
+		{
+			http.Error(w, contentType+" not supported", http.StatusBadRequest)
+			return
+		}
 	}
-
-	var err error
-	url, err := io.ReadAll(r.Body)
 
 	defer r.Body.Close()
 
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+}
+
+func (h *URLHandler) PostHandleJSON(w http.ResponseWriter, r *http.Request) {
+	var (
+		url         []byte
+		err         error
+		contentType string
+	)
+	contentType = r.Header.Get("content-type")
+	switch contentType {
+	case contentTypeApJSON:
+		{
+			var req models.Request
+			var buf bytes.Buffer
+			_, err = buf.ReadFrom(r.Body)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			if err = json.Unmarshal(buf.Bytes(), &req); err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			url = []byte(req.URL)
+		}
+	default:
+		{
+			http.Error(w, contentType+" not supported", http.StatusBadRequest)
+			return
+		}
 	}
+
+	defer r.Body.Close()
 
 	if len(url) == 0 {
 		http.Error(w, "Empty value", http.StatusBadRequest)
@@ -88,8 +143,16 @@ func (h *URLHandler) PostHandle(w http.ResponseWriter, r *http.Request) {
 
 	shortURL := h.addShortURL(string(url))
 
+	var res models.Response
+	res.Result = h.Cfg.BaseURL + shortURL
+	resp, err := json.Marshal(res)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", contentTypeApJSON)
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(h.Cfg.BaseURL + shortURL))
+	w.Write(resp)
 }
 
 func (h *URLHandler) addShortURL(url string) string {
@@ -105,9 +168,7 @@ func (h *URLHandler) addShortURL(url string) string {
 
 func (h *URLHandler) GetHandle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", contentTypeTextPlain)
-
 	shortURL := chi.URLParam(r, "shortURL")
-	fmt.Println("shortURL", shortURL)
 
 	var url string
 	if len(shortURL) != 0 {
