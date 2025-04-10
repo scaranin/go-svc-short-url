@@ -13,6 +13,7 @@ func InitRoute(h *handlers.URLHandler) *chi.Mux {
 	req.Route("/", func(req chi.Router) {
 		req.Post("/", h.PostHandle)
 		req.Post("/api/shorten", h.PostHandleJSON)
+		req.Post("/api/shorten/batch", h.PostHandleJSONBatch)
 		req.Get("/ping", h.PingHandle)
 		req.Get("/{shortURL}", h.GetHandle)
 	})

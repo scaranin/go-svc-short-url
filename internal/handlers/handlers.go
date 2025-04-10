@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -41,10 +42,10 @@ func (h *URLHandler) post(w http.ResponseWriter, r *http.Request, postKind strin
 		err  error
 		req  models.Request
 		resp []byte
+		buf  bytes.Buffer
 	)
 	w.Header().Set("Content-Type", postKind)
 	defer r.Body.Close()
-	var buf bytes.Buffer
 	_, err = buf.ReadFrom(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -64,7 +65,7 @@ func (h *URLHandler) post(w http.ResponseWriter, r *http.Request, postKind strin
 		w.WriteHeader(http.StatusCreated)
 		return
 	}
-	shortURL := h.Save(string(url))
+	shortURL := h.Save(string(url), "")
 
 	if postKind == contentTypeTextPlain {
 		resp = []byte(h.BaseURL + shortURL)
@@ -91,14 +92,60 @@ func (h *URLHandler) PostHandleJSON(w http.ResponseWriter, r *http.Request) {
 	h.post(w, r, contentTypeApJSON)
 }
 
-func (h *URLHandler) Save(originalURL string) string {
+func (h *URLHandler) PostHandleJSONBatch(w http.ResponseWriter, r *http.Request) {
+	var (
+		data         []byte
+		err          error
+		pairRequest  []models.PairRequest
+		pairResponse []models.PairResponse
+		resp         []byte
+		buf          bytes.Buffer
+	)
+	_, err = buf.ReadFrom(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	data = buf.Bytes()
+
+	if err := json.Unmarshal(data, &pairRequest); err != nil {
+		log.Fatal("Error parsing JSON:", err)
+	}
+
+	for _, pair := range pairRequest {
+		newPair := models.PairResponse{
+			CorrelationID: pair.CorrelationID,
+			ShortURL:      h.BaseURL + h.Save(pair.OriginalURL, pair.CorrelationID),
+		}
+		pairResponse = append(pairResponse, newPair)
+		var URL = models.URL{CorrelationID: pair.CorrelationID, OriginalURL: pair.OriginalURL, ShortURL: ShortURLCalc(pair.OriginalURL)}
+		h.Storage.Save(&URL)
+	}
+
+	fmt.Println("pairResponse", pairResponse)
+	resp, err = json.Marshal(pairResponse)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", contentTypeApJSON)
+	w.WriteHeader(http.StatusCreated)
+	w.Write(resp)
+
+}
+
+func ShortURLCalc(originalURL string) string {
 	hasher := sha1.New()
-
 	hasher.Write([]byte(originalURL))
+	return base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+}
 
-	shortURL := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+func (h *URLHandler) Save(originalURL string, correlationID string) string {
+	shortURL := ShortURLCalc(originalURL)
 	if _, found := h.Storage.Load(shortURL); !found {
-		var baseURL = models.URL{OriginalURL: originalURL, ShortURL: shortURL}
+		var baseURL = models.URL{CorrelationID: correlationID, OriginalURL: originalURL, ShortURL: shortURL}
 		h.Storage.Save(&baseURL)
 	}
 
