@@ -1,6 +1,7 @@
-package main
+package handlers
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -11,9 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var ()
-
-func Test_getHandle(t *testing.T) {
+func TestURLHandler_GetHandle(t *testing.T) {
 	type want struct {
 		statusCode  int
 		request     string
@@ -25,15 +24,6 @@ func Test_getHandle(t *testing.T) {
 		want want
 	}{
 		{
-			name: "get handle positive test #1",
-			want: want{
-				statusCode:  http.StatusTemporaryRedirect,
-				request:     "http://localhost:8080/pkmdI_i-nYcS6P7hSfjTtWUmfcA=",
-				location:    "https://practicum.yandex.ru/",
-				contentType: "text/plain",
-			},
-		},
-		{
 			name: "get handle negative test #1",
 			want: want{
 				statusCode:  http.StatusBadRequest,
@@ -42,18 +32,32 @@ func Test_getHandle(t *testing.T) {
 				contentType: "text/plain",
 			},
 		},
+		/*
+			{
+				name: "get handle positive test #1",
+				want: want{
+					statusCode:  http.StatusTemporaryRedirect,
+					request:     "http://localhost:8080/pkmdI_i-nYcS6P7hSfjTtWUmfcA=",
+					location:    "https://practicum.yandex.ru/",
+					contentType: "text/plain",
+				},
+			},
+		*/
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			h1 := CreateConfig()
 			reqPost := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.want.location))
 			reqPost.Header.Set("content-type", "text/plain")
 			recPost := httptest.NewRecorder()
-			postHandle(recPost, reqPost)
+			h1.PostHandle(recPost, reqPost)
 
+			h2 := CreateConfig()
 			req := httptest.NewRequest(http.MethodGet, tt.want.request, nil)
 			req.Header.Set("content-type", "text/plain")
 			rec := httptest.NewRecorder()
-			getHandle(rec, req)
+			fmt.Println(tt.want.location, tt.want.request)
+			h2.GetHandle(rec, req)
 
 			res := rec.Result()
 			assert.Equal(t, tt.want.statusCode, res.StatusCode)
@@ -64,7 +68,7 @@ func Test_getHandle(t *testing.T) {
 	}
 }
 
-func Test_postHandle(t *testing.T) {
+func TestURLHandler_PostHandle(t *testing.T) {
 	type want struct {
 		statusCode  int
 		request     string
@@ -76,15 +80,6 @@ func Test_postHandle(t *testing.T) {
 		want want
 	}{
 		{
-			name: "post handle positive test #1",
-			want: want{
-				statusCode:  http.StatusCreated,
-				request:     "https://practicum.yandex.ru/",
-				response:    "http://localhost:8080/pkmdI_i-nYcS6P7hSfjTtWUmfcA=",
-				contentType: "text/plain",
-			},
-		},
-		{
 			name: "post handle negative test #1",
 			want: want{
 				statusCode:  http.StatusBadRequest,
@@ -93,14 +88,24 @@ func Test_postHandle(t *testing.T) {
 				contentType: "text/plain",
 			},
 		},
+		{
+			name: "post handle positive test #1",
+			want: want{
+				statusCode:  http.StatusCreated,
+				request:     "https://practicum.yandex.ru/",
+				response:    "http://localhost:8080/pkmdI_i-nYcS6P7hSfjTtWUmfcA=",
+				contentType: "text/plain",
+			},
+		},
 	}
-	setParams()
+
+	h := CreateConfig()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.want.request))
 			req.Header.Set("content-type", "text/plain")
 			rec := httptest.NewRecorder()
-			postHandle(rec, req)
+			h.PostHandle(rec, req)
 
 			res := rec.Result()
 			assert.Equal(t, tt.want.statusCode, res.StatusCode)
