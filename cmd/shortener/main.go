@@ -4,28 +4,23 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/go-chi/chi"
+	"github.com/scaranin/go-svc-short-url/internal/api"
+	"github.com/scaranin/go-svc-short-url/internal/config"
 	"github.com/scaranin/go-svc-short-url/internal/handlers"
-	"github.com/scaranin/go-svc-short-url/internal/middleware"
+	"github.com/scaranin/go-svc-short-url/internal/storage"
 )
 
 func main() {
-	h := handlers.CreateConfig()
-	defer h.Close()
 
-	req := chi.NewRouter()
+	cfg := config.CreateConfig()
 
-	req.Use(middleware.WithLogging, middleware.GzipMiddleware)
+	store := storage.CreateStore(cfg.FileStoragePath)
+	defer store.Close()
+	h := handlers.CreateHandle(cfg, store)
 
-	h.BaseFile.Consumer.GetURL()
+	req := api.InitRoute(&h)
 
-	req.Route(`/`, func(req chi.Router) {
-		req.Get(`/{shortURL}`, h.GetHandle)
-		req.Post(`/`, h.PostHandle)
-		req.Post(`/api/shorten`, h.PostHandleJSON)
-	})
-
-	err := http.ListenAndServe(h.Cfg.ServerURL, req)
+	err := http.ListenAndServe(cfg.ServerURL, req)
 	if err != nil {
 		log.Fatal(err)
 	}

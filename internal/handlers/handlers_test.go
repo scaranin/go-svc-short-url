@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/scaranin/go-svc-short-url/internal/config"
+	"github.com/scaranin/go-svc-short-url/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -44,16 +46,19 @@ func TestURLHandler_GetHandle(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			cfg := config.CreateConfig()
+			store := storage.CreateStore(cfg.FileStoragePath)
+			defer store.Close()
+			h1 := CreateHandle(cfg, store)
 
-			h1 := CreateConfig()
 			reqPost := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.want.location))
 			reqPost.Header.Set("Content-Type", tt.want.contentType)
 			recPost := httptest.NewRecorder()
 			h1.PostHandle(recPost, reqPost)
 
-			payload := strings.NewReader(``)
+			reader := strings.NewReader(``)
 			client := &http.Client{}
-			req := httptest.NewRequest(http.MethodGet, tt.want.request, payload)
+			req := httptest.NewRequest(http.MethodGet, tt.want.request, reader)
 
 			req.Header.Add("Content-Type", tt.want.contentType)
 
@@ -103,7 +108,10 @@ func TestURLHandler_PostHandle(t *testing.T) {
 		},
 	}
 
-	h := CreateConfig()
+	cfg := config.CreateConfig()
+	store := storage.CreateStore(cfg.FileStoragePath)
+	defer store.Close()
+	h := CreateHandle(cfg, store)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.want.request))
@@ -153,7 +161,10 @@ func TestURLHandler_PostHandleJson(t *testing.T) {
 			},
 		},
 	}
-	h := CreateConfig()
+	cfg := config.CreateConfig()
+	store := storage.CreateStore(cfg.FileStoragePath)
+	defer store.Close()
+	h := CreateHandle(cfg, store)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/api/shorten", strings.NewReader(tt.want.request))
@@ -169,6 +180,48 @@ func TestURLHandler_PostHandleJson(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, tt.want.response, string(resBody))
 			assert.Contains(t, res.Header.Get("content-type"), tt.want.contentType)
+		})
+	}
+}
+
+func TestURLHandler_PingHandle(t *testing.T) {
+	type want struct {
+		statusCode  int
+		request     string
+		location    string
+		contentType string
+	}
+	tests := []struct {
+		name string
+		want want
+	}{
+		{
+			name: "ping handle positive test #1",
+			want: want{
+				statusCode:  http.StatusOK,
+				request:     "http://localhost:8080/ping",
+				location:    "",
+				contentType: "text/plain",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := strings.NewReader(``)
+			client := &http.Client{}
+			req := httptest.NewRequest(http.MethodGet, tt.want.request, reader)
+
+			req.Header.Add("Content-Type", tt.want.contentType)
+
+			res, err := client.Do(req)
+			if err != nil {
+				return
+			}
+			defer res.Body.Close()
+
+			assert.Equal(t, tt.want.statusCode, res.StatusCode)
+
 		})
 	}
 }
