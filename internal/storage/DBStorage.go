@@ -15,15 +15,20 @@ type DBStorage struct {
 	PGXPool *pgxpool.Pool
 }
 
-func (dbStore DBStorage) Save(URL *models.URL) error {
+func (dbStore DBStorage) Save(URL *models.URL) (string, error) {
 	ctx := context.Background()
 	_, err := dbStore.PGXPool.Exec(ctx, "INSERT INTO MAP_URL(correlation_id, short_url, original_url) VALUES (@P_CORR_ID, @P_SHORT_URL, @P_ORIGINAL_URL)",
 		pgx.NamedArgs{"@P_CORR_ID": URL.CorrelationID, "P_SHORT_URL": URL.ShortURL, "P_ORIGINAL_URL": URL.OriginalURL},
 	)
-	return err
+	if pgErr, ok := err.(*pgconn.PgError); ok {
+		if pgErr.Code == pgerrcode.UniqueViolation {
+			return URL.ShortURL, pgErr
+		}
+	}
+	return URL.ShortURL, err
 }
 
-func (dbStore DBStorage) Load(shortURL string) (string, bool) {
+func (dbStore DBStorage) Load(shortURL string) (string, error) {
 	ctx := context.Background()
 	row := dbStore.PGXPool.QueryRow(ctx, "select original_url from MAP_URL WHERE short_url = @P_SHORT_URL",
 		pgx.NamedArgs{"P_SHORT_URL": shortURL},
@@ -32,9 +37,9 @@ func (dbStore DBStorage) Load(shortURL string) (string, bool) {
 	var originalURL string
 	err := row.Scan(&originalURL)
 	if err != nil {
-		return originalURL, false
+		return originalURL, err
 	}
-	return originalURL, true
+	return originalURL, err
 }
 
 func (dbStore DBStorage) Ping(ctx context.Context) error {
@@ -52,8 +57,15 @@ func (dbStore DBStorage) CreateDBScheme(ctx context.Context) error {
 			err = nil
 		}
 	}
+	if err == nil {
+		_, err = dbStore.PGXPool.Exec(ctx, `CREATE UNIQUE INDEX idx_original_url ON MAP_URL(original_url)`)
+		if pgErr, ok := err.(*pgconn.PgError); ok {
+			if pgErr.Code == pgerrcode.DuplicateTable {
+				err = nil
+			}
+		}
+	}
 	return err
-
 }
 
 func CreateStoreDB(DSN string) (DBStorage, error) {
@@ -74,7 +86,6 @@ func CreateStoreDB(DSN string) (DBStorage, error) {
 	if err != nil {
 		return dbStore, err
 	}
-
 	return dbStore, err
 }
 
