@@ -1,11 +1,12 @@
 package config
 
-type NetAddress struct {
-	ServerURL string
-	BaseURL   string
+type ShortenerConfig struct {
+	ServerURL       string
+	BaseURL         string
+	FileStorageParh string
 }
 
-func New() *NetAddress {
-	return &NetAddress{ServerURL: "localhost:8080", BaseURL: "http://localhost:8080"}
+func New() *ShortenerConfig {
+	return &ShortenerConfig{ServerURL: "localhost:8080", BaseURL: "http://localhost:8080", FileStorageParh: "BaseFile.json"}
 
 }
