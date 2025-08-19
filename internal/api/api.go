@@ -8,6 +8,14 @@ import (
 	"github.com/scaranin/go-svc-short-url/internal/middleware"
 )
 
+// InitRoute initializes and configures the router with all application routes and middleware.
+// It sets up:
+// - Logging and compression middleware
+// - Core URL shortening routes (JSON and plaintext)
+// - User-specific routes
+// - Health check endpoint
+// - Debug/profiling endpoints
+// Returns a configured chi.Mux router ready for use.
 func InitRoute(h *handlers.URLHandler) *chi.Mux {
 	mux := chi.NewRouter()
 	mux.Use(middleware.WithLogging, middleware.GzipMiddleware)
