@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -80,7 +79,7 @@ func (auth *AuthConfig) FillUserReturnCookie(incomeCookie *http.Cookie) (*http.C
 		resAuthToken string
 		err          error
 	)
-	fmt.Println(incomeCookie)
+
 	if incomeCookie != nil {
 		resAuthToken = incomeCookie.Value
 	}
