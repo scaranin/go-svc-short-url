@@ -67,17 +67,3 @@ func BenchmarkPingHandle(b *testing.B) {
 	}
 
 }
-
-func ExampleURLHandler_PingHandle() {
-	reader := strings.NewReader(``)
-	client := &http.Client{}
-	req := httptest.NewRequest(http.MethodGet, "http://localhost:8080/ping", reader)
-
-	req.Header.Add("Content-Type", "text/plain")
-
-	res, err := client.Do(req)
-	if err != nil {
-		return
-	}
-	defer res.Body.Close()
-}

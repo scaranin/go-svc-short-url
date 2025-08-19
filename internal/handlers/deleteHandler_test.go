@@ -49,17 +49,3 @@ func TestURLHandler_DeleteHandle(t *testing.T) {
 		})
 	}
 }
-
-func ExampleURLHandler_DeleteHandle() {
-	reader := strings.NewReader(``)
-	client := &http.Client{}
-	req := httptest.NewRequest(http.MethodDelete, "http://localhost:8080/api/user/urls", reader)
-
-	req.Header.Add("Content-Type", "text/plain")
-
-	res, err := client.Do(req)
-	if err != nil {
-		return
-	}
-	defer res.Body.Close()
-}
