@@ -2,6 +2,8 @@ package storage
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log"
 
 	"github.com/jackc/pgerrcode"
@@ -26,7 +28,7 @@ type DBStorage struct {
 
 func (dbStore DBStorage) Save(URL *models.URL) (string, error) {
 	ctx := context.Background()
-	_, err := dbStore.PGXPool.Exec(ctx, "INSERT INTO MAP_URL(correlation_id, short_url, original_url, user_id) VALUES (@P_CORR_ID, @P_SHORT_URL, @P_ORIGINAL_URL, @P_USER_ID)",
+	_, err := dbStore.PGXPool.Exec(ctx, "INSERT INTO MAP_URL(correlation_id, short_url, original_url, user_id, is_deleted) VALUES (@P_CORR_ID, @P_SHORT_URL, @P_ORIGINAL_URL, @P_USER_ID, false)",
 		pgx.NamedArgs{"@P_CORR_ID": URL.CorrelationID, "P_SHORT_URL": URL.ShortURL, "P_ORIGINAL_URL": URL.OriginalURL, "P_USER_ID": URL.UserID},
 	)
 	if pgErr, ok := err.(*pgconn.PgError); ok {
@@ -39,14 +41,18 @@ func (dbStore DBStorage) Save(URL *models.URL) (string, error) {
 
 func (dbStore DBStorage) Load(shortURL string) (string, error) {
 	ctx := context.Background()
-	row := dbStore.PGXPool.QueryRow(ctx, "select original_url from MAP_URL WHERE short_url = @P_SHORT_URL",
+	row := dbStore.PGXPool.QueryRow(ctx, "select original_url, is_deleted from MAP_URL WHERE short_url = @P_SHORT_URL",
 		pgx.NamedArgs{"P_SHORT_URL": shortURL},
 	)
 
 	var originalURL string
-	err := row.Scan(&originalURL)
+	isDeleted := false
+	err := row.Scan(&originalURL, &isDeleted)
 	if err != nil {
 		return originalURL, err
+	}
+	if isDeleted {
+		err = errors.New("ROW_IS_DELETED")
 	}
 	return originalURL, err
 }
@@ -88,12 +94,36 @@ func (dbStore DBStorage) GetUserURLList(UserID string) ([]models.URLUserList, er
 	return URLlist, err
 }
 
+func (dbStore DBStorage) DeleteBulk(UserID string, ShortURLs []string) error {
+	ctx := context.Background()
+	tx, err := dbStore.PGXPool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	_, err = tx.Prepare(ctx, "SetIsDeleted", "UPDATE MAP_URL set is_deleted = true where short_url = $1 and user_id = $2")
+	if err != nil {
+		return err
+	}
+
+	for _, ShortURL := range ShortURLs {
+		fmt.Println(ShortURL, UserID)
+		_, err := tx.Exec(ctx, "SetIsDeleted", ShortURL, UserID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit(ctx)
+}
+
 func (dbStore DBStorage) CreateDBScheme(ctx context.Context) error {
 	_, err := dbStore.PGXPool.Exec(ctx, `CREATE TABLE MAP_URL (
 		"correlation_id" TEXT,
         "short_url" TEXT,
 		"original_url" TEXT,
-		"user_id" TEXT
+		"user_id" TEXT,
+		"is_deleted" BOOL
       )`)
 	if pgErr, ok := err.(*pgconn.PgError); ok {
 		if pgErr.Code == pgerrcode.DuplicateTable {
