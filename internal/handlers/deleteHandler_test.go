@@ -50,7 +50,7 @@ func TestURLHandler_DeleteHandle(t *testing.T) {
 	}
 }
 
-func ExampleDeleteHandle() {
+func ExampleURLHandler_DeleteHandle() {
 	reader := strings.NewReader(``)
 	client := &http.Client{}
 	req := httptest.NewRequest(http.MethodDelete, "http://localhost:8080/api/user/urls", reader)
