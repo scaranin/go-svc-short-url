@@ -1,4 +1,4 @@
-package handlers
+package handlers_test
 
 import (
 	"io"
@@ -11,6 +11,7 @@ import (
 
 	"github.com/scaranin/go-svc-short-url/internal/auth"
 	"github.com/scaranin/go-svc-short-url/internal/config"
+	"github.com/scaranin/go-svc-short-url/internal/handlers"
 	"github.com/scaranin/go-svc-short-url/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -58,7 +59,7 @@ func TestURLHandler_PostHandle(t *testing.T) {
 		return
 	}
 	defer store.Close()
-	h := CreateHandle(cfg, store, auth.NewAuthConfig())
+	h := handlers.CreateHandle(cfg, store, auth.NewAuthConfig())
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.want.request))
@@ -117,7 +118,7 @@ func TestURLHandler_PostHandleJson(t *testing.T) {
 		return
 	}
 	defer store.Close()
-	h := CreateHandle(cfg, store, auth.NewAuthConfig())
+	h := handlers.CreateHandle(cfg, store, auth.NewAuthConfig())
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/api/shorten", strings.NewReader(tt.want.request))
@@ -150,7 +151,7 @@ func BenchmarkPost(b *testing.B) {
 
 	auth := auth.NewAuthConfig()
 
-	h := CreateHandle(cfg, store, auth)
+	h := handlers.CreateHandle(cfg, store, auth)
 
 	req := httptest.NewRequest(http.MethodPost, h.BaseURL, nil)
 
@@ -171,7 +172,7 @@ func BenchmarkPost(b *testing.B) {
 	req.AddCookie(cookie)
 
 	for i := 0; i < b.N; i++ {
-		h.post(w, req, "application/json")
+		h.PostHandleJSON(w, req)
 	}
 
 }

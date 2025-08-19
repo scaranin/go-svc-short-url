@@ -119,3 +119,17 @@ func BenchmarkGetHandle(b *testing.B) {
 	}
 
 }
+
+func ExampleGetHandle() {
+	reader := strings.NewReader(``)
+	client := &http.Client{}
+	req := httptest.NewRequest(http.MethodGet, "http://localhost:8080/pkmdI_i-nYcS6P7hSfjTtWUmfcA=", reader)
+
+	req.Header.Add("Content-Type", "text/plain")
+
+	res, err := client.Do(req)
+	if err != nil {
+		return
+	}
+	defer res.Body.Close()
+}

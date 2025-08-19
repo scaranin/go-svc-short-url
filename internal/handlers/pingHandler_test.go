@@ -1,4 +1,4 @@
-package handlers
+package handlers_test
 
 import (
 	"net/http"
@@ -66,4 +66,18 @@ func BenchmarkPingHandle(b *testing.B) {
 		defer res.Body.Close()
 	}
 
+}
+
+func ExamplePingHandle() {
+	reader := strings.NewReader(``)
+	client := &http.Client{}
+	req := httptest.NewRequest(http.MethodGet, "http://localhost:8080/ping", reader)
+
+	req.Header.Add("Content-Type", "text/plain")
+
+	res, err := client.Do(req)
+	if err != nil {
+		return
+	}
+	defer res.Body.Close()
 }
