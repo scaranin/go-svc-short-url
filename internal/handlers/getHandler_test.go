@@ -120,7 +120,7 @@ func BenchmarkGetHandle(b *testing.B) {
 
 }
 
-func ExampleGetHandle() {
+func ExampleURLHandler_GetHandle() {
 	reader := strings.NewReader(``)
 	client := &http.Client{}
 	req := httptest.NewRequest(http.MethodGet, "http://localhost:8080/pkmdI_i-nYcS6P7hSfjTtWUmfcA=", reader)

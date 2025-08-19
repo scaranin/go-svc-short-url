@@ -68,7 +68,7 @@ func BenchmarkPingHandle(b *testing.B) {
 
 }
 
-func ExamplePingHandle() {
+func ExampleURLHandler_PingHandle() {
 	reader := strings.NewReader(``)
 	client := &http.Client{}
 	req := httptest.NewRequest(http.MethodGet, "http://localhost:8080/ping", reader)
