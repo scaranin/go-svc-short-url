@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	_ "net/http/pprof"
 
 	"github.com/scaranin/go-svc-short-url/internal/api"
 	"github.com/scaranin/go-svc-short-url/internal/auth"

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
@@ -13,6 +12,9 @@ import (
 	"github.com/scaranin/go-svc-short-url/internal/models"
 )
 
+// DBStorageInterface defines the contract for a database-backed storage system.
+// It is intended to be implemented by structs that interact with a database,
+// but it is currently not fully utilized as the concrete type DBStorage is returned directly.
 type DBStorageInterface interface {
 	Save(URL *models.URL) (string, error)
 	Load(shortURL string) (string, error)
@@ -21,15 +23,24 @@ type DBStorageInterface interface {
 	Close()
 }
 
+// DBStorage provides a PostgreSQL-backed implementation of the models.Storage interface.
+// It manages a connection pool to the database for all storage operations.
 type DBStorage struct {
-	DSN     string
+	// DSN is the Data Source Name for the PostgreSQL connection.
+	DSN string
+	// PGXPool is the active connection pool to the database.
 	PGXPool *pgxpool.Pool
 }
 
+// Save inserts a new URL record into the `MAP_URL` table.
+// It includes the user's ID and sets the `is_deleted` flag to false.
+// It handles unique constraint violations on `original_url` by returning the
+// conflicting short URL and a specific `pgconn.PgError`, allowing the caller
+// to manage conflicts (e.g., by returning an HTTP 409 status).
 func (dbStore DBStorage) Save(URL *models.URL) (string, error) {
 	ctx := context.Background()
 	_, err := dbStore.PGXPool.Exec(ctx, "INSERT INTO MAP_URL(correlation_id, short_url, original_url, user_id, is_deleted) VALUES (@P_CORR_ID, @P_SHORT_URL, @P_ORIGINAL_URL, @P_USER_ID, false)",
-		pgx.NamedArgs{"@P_CORR_ID": URL.CorrelationID, "P_SHORT_URL": URL.ShortURL, "P_ORIGINAL_URL": URL.OriginalURL, "P_USER_ID": URL.UserID},
+		pgx.NamedArgs{"P_CORR_ID": URL.CorrelationID, "P_SHORT_URL": URL.ShortURL, "P_ORIGINAL_URL": URL.OriginalURL, "P_USER_ID": URL.UserID},
 	)
 	if pgErr, ok := err.(*pgconn.PgError); ok {
 		if pgErr.Code == pgerrcode.UniqueViolation {
@@ -39,6 +50,10 @@ func (dbStore DBStorage) Save(URL *models.URL) (string, error) {
 	return URL.ShortURL, err
 }
 
+// Load retrieves the original URL from the database.
+// It also checks if the URL has been marked as deleted. If the `is_deleted` flag
+// is true, it returns a specific sentinel error `errors.New("ROW_IS_DELETED")`,
+// which allows the caller (handler) to return an HTTP 410 Gone status.
 func (dbStore DBStorage) Load(shortURL string) (string, error) {
 	ctx := context.Background()
 	row := dbStore.PGXPool.QueryRow(ctx, "select original_url, is_deleted from MAP_URL WHERE short_url = @P_SHORT_URL",
@@ -57,17 +72,22 @@ func (dbStore DBStorage) Load(shortURL string) (string, error) {
 	return originalURL, err
 }
 
+// Ping verifies the connection to the database is active.
 func (dbStore DBStorage) Ping(ctx context.Context) error {
 	return dbStore.PGXPool.Ping(ctx)
 }
 
+// GetUserURLList fetches all non-deleted URLs associated with a specific UserID.
+// It queries the database and populates a slice of `models.URLUserList`.
+// Note: This function uses `log.Fatal` on database errors, which will terminate
+// the application. In a robust service, these errors should be returned instead.
 func (dbStore DBStorage) GetUserURLList(UserID string) ([]models.URLUserList, error) {
 	ctx := context.Background()
 	rows, err := dbStore.PGXPool.Query(ctx, "select short_url, original_url from MAP_URL WHERE user_id = @P_USER_ID",
 		pgx.NamedArgs{"P_USER_ID": UserID},
 	)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -78,22 +98,22 @@ func (dbStore DBStorage) GetUserURLList(UserID string) ([]models.URLUserList, er
 
 		err = rows.Scan(&URLlistItem.ShortURL, &URLlistItem.OriginalURL)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 		URLlist = append(URLlist, URLlistItem)
 	}
 
 	if err = rows.Err(); err != nil {
-		log.Fatal(err)
-	}
-
-	if err != nil {
-		return URLlist, err
+		return nil, err
 	}
 
 	return URLlist, err
 }
 
+// DeleteBulk performs a "soft delete" on a batch of URLs owned by a specific user.
+// It sets the `is_deleted` flag to true for the given short URLs. The entire
+// operation is performed within a single database transaction for atomicity: either
+// all URLs are marked for deletion, or none are if an error occurs.
 func (dbStore DBStorage) DeleteBulk(UserID string, ShortURLs []string) error {
 	ctx := context.Background()
 	tx, err := dbStore.PGXPool.Begin(ctx)
@@ -117,6 +137,10 @@ func (dbStore DBStorage) DeleteBulk(UserID string, ShortURLs []string) error {
 	return tx.Commit(ctx)
 }
 
+// CreateDBScheme sets up the necessary database schema.
+// It creates the `MAP_URL` table and a `UNIQUE INDEX` on `original_url`.
+// The method is idempotent, meaning it can be run multiple times without causing
+// errors if the schema already exists, as it checks for `DuplicateTable` errors.
 func (dbStore DBStorage) CreateDBScheme(ctx context.Context) error {
 	_, err := dbStore.PGXPool.Exec(ctx, `CREATE TABLE MAP_URL (
 		"correlation_id" TEXT,
@@ -141,6 +165,8 @@ func (dbStore DBStorage) CreateDBScheme(ctx context.Context) error {
 	return err
 }
 
+// CreateStoreDB is a factory function that initializes and returns a new DBStorage instance.
+// It establishes a connection pool, pings the database, and ensures the schema is created.
 func CreateStoreDB(DSN string) (DBStorage, error) {
 	var dbStore DBStorage
 	ctx := context.Background()
@@ -162,6 +188,9 @@ func CreateStoreDB(DSN string) (DBStorage, error) {
 	return dbStore, err
 }
 
+// Close gracefully closes the database connection pool.
 func (dbStore *DBStorage) Close() {
-	dbStore.PGXPool.Close()
+	if dbStore.PGXPool != nil {
+		dbStore.PGXPool.Close()
+	}
 }
