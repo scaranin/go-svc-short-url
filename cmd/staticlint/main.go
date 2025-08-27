@@ -39,6 +39,16 @@ import (
 	"honnef.co/go/tools/staticcheck"
 )
 
+// contains checks if a string slice contains a specific value.
+// It iterates through each element in the slice and returns true
+// if the target value is found, otherwise returns false.
+//
+// Parameters:
+//   - slice: the string slice to search through
+//   - value: the target string value to find
+//
+// Returns:
+//   - bool: true if value is found in slice, false otherwise
 func contains(slice []string, value string) bool {
 	for _, v := range slice {
 		if v == value {
@@ -54,6 +64,24 @@ var OsExitCheck = &analysis.Analyzer{
 	Run:  run,
 }
 
+// run is the function executed by the OsExitCheck analyzer.
+// It checks for calls to os.Exit within the main function of the main package.
+//
+// The function first verifies that the analyzed package is named "main". If it is not,
+// the function returns nil, indicating no issues were found. If the package is "main",
+// it iterates over each file in the package and inspects the abstract syntax tree (AST)
+// for function declarations.
+//
+// During the inspection, it looks for function calls within the main function. If a call
+// to os.Exit is detected, it reports an error with a message indicating that the usage
+// of os.Exit is not allowed in the main package's main function.
+//
+// Parameters:
+//   - pass: an analysis.Pass object that provides information about the package being analyzed
+//
+// Returns:
+//   - interface{}: nil if the analysis completes successfully
+//   - error: nil if no errors occur during analysis, otherwise an error if one occurs
 func run(pass *analysis.Pass) (interface{}, error) {
 	if pass.Pkg.Name() != "main" {
 		return nil, nil
