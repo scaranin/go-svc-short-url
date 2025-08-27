@@ -58,12 +58,6 @@ func contains(slice []string, value string) bool {
 	return false
 }
 
-var OsExitCheck = &analysis.Analyzer{
-	Name: "osexitcheck",
-	Doc:  "check for call os.Exit from main",
-	Run:  run,
-}
-
 // run is the function executed by the OsExitCheck analyzer.
 // It checks for calls to os.Exit within the main function of the main package.
 //
@@ -108,6 +102,12 @@ func run(pass *analysis.Pass) (interface{}, error) {
 }
 
 func main() {
+	var OsExitCheck = &analysis.Analyzer{
+		Name: "osexitcheck",
+		Doc:  "check for call os.Exit from main",
+		Run:  run,
+	}
+
 	var allAnalyzers []*analysis.Analyzer
 
 	allAnalyzers = append(allAnalyzers, printf.Analyzer)
