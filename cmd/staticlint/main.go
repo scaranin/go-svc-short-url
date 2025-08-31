@@ -82,21 +82,34 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	}
 
 	for _, file := range pass.Files {
-		ast.Inspect(file, func(n ast.Node) bool {
-			callExpr, ok := n.(*ast.CallExpr)
-			if !ok {
-				return true
+		for _, decl := range file.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Name.Name != "main" || fn.Recv != nil {
+				continue
 			}
-			if n.(*ast.FuncDecl).Name.Name == "main" {
 
-				if selExpr, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
-					if ident, ok := selExpr.X.(*ast.Ident); ok && ident.Name == "os" && selExpr.Sel.Name == "Exit" {
-						pass.Reportf(callExpr.Pos(), "Usage of os.Exit is not allowed in the main package func main")
-					}
+			ast.Inspect(fn.Body, func(n ast.Node) bool {
+				call, ok := n.(*ast.CallExpr)
+				if !ok {
+					return true
 				}
-			}
-			return true
-		})
+
+				sel, ok := call.Fun.(*ast.SelectorExpr)
+				if !ok {
+					return true
+				}
+
+				ident, ok := sel.X.(*ast.Ident)
+				if !ok {
+					return true
+				}
+
+				if ident.Name == "os" && sel.Sel.Name == "Exit" {
+					pass.Reportf(call.Pos(), "Usage of os.Exit is not allowed in the main package func main")
+				}
+				return true
+			})
+		}
 	}
 	return nil, nil
 }

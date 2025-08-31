@@ -59,14 +59,11 @@ func (fs FileStorageJSON) DeleteBulk(UserID string, ShortURLs []string) error {
 
 // GetDataFromFile reads all URL records from the provided consumer and populates an in-memory map.
 // It is a helper function used during initialization to load existing data from a file.
-// Note: This function will call log.Fatal and terminate the application if it
-// encounters any error other than io.EOF during reading.
 func GetDataFromFile(consumer *models.Consumer) map[string]string {
 	urlMap := make(map[string]string)
 	for {
 		mURL, err := consumer.GetURL()
 		if err == io.EOF {
-			// End of file reached, successfully loaded all data.
 			break
 		}
 		if err != nil {

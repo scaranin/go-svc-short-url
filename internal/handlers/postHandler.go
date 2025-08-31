@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -20,67 +21,126 @@ import (
 // violation occurs, it returns an HTTP 409 Conflict status. Otherwise, it returns
 // HTTP 201 Created on success.
 func (h *URLHandler) post(w http.ResponseWriter, r *http.Request, postKind string) {
-	var (
-		url  []byte
-		err  error
-		req  models.Request
-		resp []byte
-		buf  bytes.Buffer
-	)
-	cookieR, err := r.Cookie(h.Auth.CookieName)
-	if err != nil {
-		log.Print(err.Error())
+	if err := h.authAndSetCookie(w, r); err != nil {
+		log.Print(err)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
 	}
-	cookieW, err := h.Auth.FillUserReturnCookie(cookieR)
-	if err != nil {
-		log.Print(err.Error())
-	}
-	http.SetCookie(w, cookieW)
 
-	w.Header().Set("Content-Type", postKind)
-	defer r.Body.Close()
-	_, err = buf.ReadFrom(r.Body)
+	urlStr, err := h.extractURLFromBody(r, postKind)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if postKind == contentTypeTextPlain {
-		url = buf.Bytes()
-	} else if postKind == contentTypeApJSON {
-		if err = json.Unmarshal(buf.Bytes(), &req); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		url = []byte(req.URL)
-	}
 
-	if len(url) == 0 {
+	if urlStr == "" {
 		w.WriteHeader(http.StatusCreated)
 		return
 	}
-	shortURL, pgErr := h.Save(string(url), "")
 
-	if postKind == contentTypeTextPlain {
-		resp = []byte(h.BaseURL + shortURL)
-	} else if postKind == contentTypeApJSON {
-		var response models.Response
-		response.Result = h.BaseURL + shortURL
-		resp, err = json.Marshal(response)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+	shortURL, err := h.Save(urlStr, "")
+	if err != nil {
+		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == pgerrcode.UniqueViolation {
+			http.Error(w, "URL already exists", http.StatusConflict)
 			return
 		}
+		log.Printf("Database error: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
 	}
 
+	if err := h.writeResponse(w, postKind, h.BaseURL+shortURL); err != nil {
+		log.Printf("Failed to write response: %v", err)
+	}
+}
+
+// authAndSetCookie validates the authentication cookie and updates it in the response.
+// It retrieves the existing cookie, fills it with user data, and sets the updated cookie.
+//
+// Parameters:
+//   - w: http.ResponseWriter to set the cookie.
+//   - r: *http.Request to read the existing cookie.
+//
+// Returns:
+//   - error: nil if successful, otherwise an error describing the failure (e.g., missing cookie).
+func (h *URLHandler) authAndSetCookie(w http.ResponseWriter, r *http.Request) error {
+	cookieR, err := r.Cookie(h.Auth.CookieName)
+	if err != nil {
+		return fmt.Errorf("missing auth cookie: %w", err)
+	}
+
+	cookieW, err := h.Auth.FillUserReturnCookie(cookieR)
+	if err != nil {
+		return fmt.Errorf("failed to fill user cookie: %w", err)
+	}
+
+	http.SetCookie(w, cookieW)
+	return nil
+}
+
+// extractURLFromBody reads the request body and extracts the URL based on the content type.
+// It supports text/plain and application/json formats.
+//
+// Parameters:
+//   - r: *http.Request containing the body to read.
+//   - postKind: string indicating the content type.
+//
+// Returns:
+//   - string: the extracted URL.
+//   - error: nil if successful, otherwise an error.
+func (h *URLHandler) extractURLFromBody(r *http.Request, postKind string) (string, error) {
+	defer r.Body.Close()
+
+	var buf bytes.Buffer
+	if _, err := buf.ReadFrom(r.Body); err != nil {
+		return "", fmt.Errorf("failed to read request body: %w", err)
+	}
+
+	switch postKind {
+	case contentTypeTextPlain:
+		return buf.String(), nil
+	case contentTypeApJSON:
+		var req models.Request
+		if err := json.Unmarshal(buf.Bytes(), &req); err != nil {
+			return "", fmt.Errorf("invalid JSON: %w", err)
+		}
+		return req.URL, nil
+	default:
+		return "", fmt.Errorf("unsupported Content-Type: %s", postKind)
+	}
+}
+
+// writeResponse formats and sends the HTTP response in the specified content type.
+// It sets the appropriate headers and writes the result to the response writer.
+//
+// Parameters:
+//   - w: http.ResponseWriter to write the response.
+//   - postKind: string indicating the content type.
+//   - result: string containing the response data.
+//
+// Returns:
+//   - error: nil if successful, otherwise an error.
+func (h *URLHandler) writeResponse(w http.ResponseWriter, postKind, result string) error {
 	w.Header().Set("Content-Type", postKind)
-	pgError, ok := pgErr.(*pgconn.PgError)
-	if ok && pgError.Code == pgerrcode.UniqueViolation {
-		w.WriteHeader(http.StatusConflict)
-	} else {
-		w.WriteHeader(http.StatusCreated)
-	}
+	w.WriteHeader(http.StatusCreated)
 
-	w.Write(resp)
+	switch postKind {
+	case contentTypeTextPlain:
+		_, err := w.Write([]byte(result))
+		return err
+	case contentTypeApJSON:
+		resp := models.Response{Result: result}
+		data, err := json.Marshal(resp)
+		if err != nil {
+			http.Error(w, "failed to marshal response", http.StatusInternalServerError)
+			return err
+		}
+		_, err = w.Write(data)
+		return err
+	default:
+		http.Error(w, "unsupported Content-Type", http.StatusUnsupportedMediaType)
+		return fmt.Errorf("unsupported Content-Type")
+	}
 }
 
 // PostHandle handles requests to create a short URL from a plain text body.
@@ -126,7 +186,8 @@ func (h *URLHandler) PostHandleJSONBatch(w http.ResponseWriter, r *http.Request)
 	data = buf.Bytes()
 
 	if err := json.Unmarshal(data, &pairRequest); err != nil {
-		log.Fatal("Error parsing JSON:", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	for _, pair := range pairRequest {
