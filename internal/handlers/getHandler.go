@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi"
 
 	"encoding/json"
+	"log"
 )
 
 // GetHandle handles GET requests for short URLs, redirecting clients to the original URL.
@@ -59,9 +60,7 @@ func (h *URLHandler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 	}
 	cookieW, err = h.Auth.FillUserReturnCookie(cookieR)
 	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(err.Error()))
-		return
+		log.Fatal(err)
 	}
 	if err == http.ErrNoCookie {
 		w.WriteHeader(http.StatusNoContent)

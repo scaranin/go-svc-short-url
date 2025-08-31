@@ -21,7 +21,7 @@ import (
 // violation occurs, it returns an HTTP 409 Conflict status. Otherwise, it returns
 // HTTP 201 Created on success.
 func (h *URLHandler) post(w http.ResponseWriter, r *http.Request, postKind string) {
-	if err := h.authAndSetCookie(w, r); err != nil {
+	if err := h.authenticateAndSetCookie(w, r); err != nil {
 		log.Print(err)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -54,7 +54,7 @@ func (h *URLHandler) post(w http.ResponseWriter, r *http.Request, postKind strin
 	}
 }
 
-// authAndSetCookie validates the authentication cookie and updates it in the response.
+// authenticateAndSetCookie validates the authentication cookie and updates it in the response.
 // It retrieves the existing cookie, fills it with user data, and sets the updated cookie.
 //
 // Parameters:
@@ -62,8 +62,8 @@ func (h *URLHandler) post(w http.ResponseWriter, r *http.Request, postKind strin
 //   - r: *http.Request to read the existing cookie.
 //
 // Returns:
-//   - error: nil if successful, otherwise an error describing the failure (e.g., missing cookie).
-func (h *URLHandler) authAndSetCookie(w http.ResponseWriter, r *http.Request) error {
+//   - error: nil if successful, otherwise an error describing the failure.
+func (h *URLHandler) authenticateAndSetCookie(w http.ResponseWriter, r *http.Request) error {
 	cookieR, err := r.Cookie(h.Auth.CookieName)
 	if err != nil {
 		return fmt.Errorf("missing auth cookie: %w", err)
