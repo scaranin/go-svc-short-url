@@ -16,6 +16,7 @@ type ShortenerConfig struct {
 	BaseURL         string `env:"BASE_URL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	DSN             string `env:"DATABASE_DSN"`
+	HTTPSMode       string `env:"ENABLE_HTTPS"`
 }
 
 // New creates a new ShortenerConfig with default values.
@@ -24,12 +25,14 @@ type ShortenerConfig struct {
 //   - BaseURL: "http://localhost:8080"
 //   - FileStoragePath: "BaseFile.json"
 //   - DSN: "postgres://postgres:admin@localhost:5432/postgres"
+//   - HTTPSMode: "false"
 func New() ShortenerConfig {
 	return ShortenerConfig{
 		ServerURL:       "localhost:8080",
 		BaseURL:         "http://localhost:8080",
 		FileStoragePath: "BaseFile.json",
 		DSN:             "postgres://postgres:admin@localhost:5432/postgres",
+		HTTPSMode:       "false",
 	}
 
 }
@@ -54,18 +57,28 @@ func CreateConfig() (ShortenerConfig, error) {
 
 	NetCfg := New()
 
+	if flag.Lookup("s") == nil {
+		flag.StringVar(&NetCfg.HTTPSMode, "s", "false", "HTTPS mode")
+	}
+
 	if flag.Lookup("a") == nil {
 		flag.StringVar(&NetCfg.ServerURL, "a", "localhost:8080", "Server URL")
 	}
 	if flag.Lookup("b") == nil {
-		flag.StringVar(&NetCfg.BaseURL, "b", "http://localhost:8080", "Base URL")
+		if NetCfg.HTTPSMode == "true" {
+			flag.StringVar(&NetCfg.BaseURL, "b", "https://localhost:8080", "Base URL")
+		} else {
+			flag.StringVar(&NetCfg.BaseURL, "b", "http://localhost:8080", "Base URL")
+		}
+
 	}
 	if flag.Lookup("f") == nil {
-		flag.StringVar(&NetCfg.FileStoragePath, "f", "BaseFile.json", "Base URL")
+		flag.StringVar(&NetCfg.FileStoragePath, "f", "BaseFile.json", "File storage path")
 	}
 	if flag.Lookup("d") == nil {
 		flag.StringVar(&NetCfg.DSN, "d", "postgres://postgres:admin@localhost:5432/postgres", "DataBase DSN")
 	}
+
 	flag.Parse()
 
 	if len(Cfg.ServerURL) == 0 {
@@ -84,6 +97,10 @@ func CreateConfig() (ShortenerConfig, error) {
 
 	if len(Cfg.DSN) == 0 {
 		Cfg.DSN = NetCfg.DSN
+	}
+
+	if len(Cfg.HTTPSMode) == 0 {
+		Cfg.HTTPSMode = NetCfg.HTTPSMode
 	}
 
 	return Cfg, err

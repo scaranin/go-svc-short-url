@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -11,7 +12,31 @@ import (
 	"github.com/scaranin/go-svc-short-url/internal/handlers"
 )
 
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
+)
+
+func buildOut() {
+	if buildVersion == "" {
+		buildVersion = "N/A"
+	}
+	fmt.Printf("Build version: %s\n", buildVersion)
+
+	if buildDate == "" {
+		buildDate = "N/A"
+	}
+	fmt.Printf("Build date: %s\n", buildDate)
+
+	if buildCommit == "" {
+		buildCommit = "N/A"
+	}
+	fmt.Printf("Build commit: %s\n", buildCommit)
+}
+
 func main() {
+	buildOut()
 
 	cfg, err := config.CreateConfig()
 	if err != nil {
@@ -29,7 +54,14 @@ func main() {
 
 	mux := api.InitRoute(&h)
 
-	err = http.ListenAndServe(cfg.ServerURL, mux)
+	if cfg.HTTPSMode == "true" {
+		cert := `.\internal\cert\server.crt`
+		key := `.\internal\cert\server.key`
+		err = http.ListenAndServeTLS(cfg.ServerURL, cert, key, mux)
+	} else {
+		err = http.ListenAndServe(cfg.ServerURL, mux)
+	}
+
 	if err != nil {
 		log.Fatal(err)
 	}
