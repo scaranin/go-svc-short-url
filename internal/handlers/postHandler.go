@@ -20,13 +20,35 @@ import (
 // violation occurs, it returns an HTTP 409 Conflict status. Otherwise, it returns
 // HTTP 201 Created on success.
 func (h *URLHandler) post(w http.ResponseWriter, r *http.Request, postKind string) {
-	var (
-		url  []byte
-		err  error
-		req  models.Request
-		resp []byte
-		buf  bytes.Buffer
-	)
+	h.handleCookies(w, r)
+
+	w.Header().Set("Content-Type", postKind)
+	defer r.Body.Close()
+
+	url, err := h.parseRequestBody(r, postKind)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if len(url) == 0 {
+		w.WriteHeader(http.StatusCreated)
+		return
+	}
+
+	resp, statusCode, err := h.saveURLAndBuildResponse(url, postKind)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(statusCode)
+	_, _ = w.Write(resp)
+}
+
+// handleCookies reads the cookie from the request, updates it via Auth,
+// and sets it in the response. Errors are logged but do not interrupt execution.
+func (h *URLHandler) handleCookies(w http.ResponseWriter, r *http.Request) {
 	cookieR, err := r.Cookie(h.Auth.CookieName)
 	if err != nil {
 		log.Print(err.Error())
@@ -36,51 +58,61 @@ func (h *URLHandler) post(w http.ResponseWriter, r *http.Request, postKind strin
 		log.Print(err.Error())
 	}
 	http.SetCookie(w, cookieW)
+}
 
-	w.Header().Set("Content-Type", postKind)
-	defer r.Body.Close()
-	_, err = buf.ReadFrom(r.Body)
+// parseRequestBody reads and parses the HTTP request body,
+// returning the URL as a byte slice.
+// Supports two content types:
+// - contentTypeTextPlain: returns the raw request body;
+// - contentTypeApJSON: parses JSON and extracts the URL field.
+// Returns an error if parsing fails.
+func (h *URLHandler) parseRequestBody(r *http.Request, postKind string) ([]byte, error) {
+	var buf bytes.Buffer
+	_, err := buf.ReadFrom(r.Body)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	if postKind == contentTypeTextPlain {
-		url = buf.Bytes()
-	} else if postKind == contentTypeApJSON {
-		if err = json.Unmarshal(buf.Bytes(), &req); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		url = []byte(req.URL)
+		return nil, err
 	}
 
-	if len(url) == 0 {
-		w.WriteHeader(http.StatusCreated)
-		return
+	if postKind == contentTypeTextPlain {
+		return buf.Bytes(), nil
+	} else if postKind == contentTypeApJSON {
+		var req models.Request
+		if err := json.Unmarshal(buf.Bytes(), &req); err != nil {
+			return nil, err
+		}
+		return []byte(req.URL), nil
 	}
+	return nil, nil
+}
+
+// saveURLAndBuildResponse saves the URL in storage and builds the HTTP response body.
+// Returns the response body, HTTP status code, and an error if any occurs.
+// Handles database unique constraint violations by returning HTTP 409 Conflict.
+// Response format depends on postKind:
+// - contentTypeTextPlain: returns the short URL as plain text;
+// - contentTypeApJSON: returns JSON containing the short URL in the "Result" field.
+func (h *URLHandler) saveURLAndBuildResponse(url []byte, postKind string) ([]byte, int, error) {
 	shortURL, pgErr := h.Save(string(url), "")
 
+	var resp []byte
 	if postKind == contentTypeTextPlain {
 		resp = []byte(h.BaseURL + shortURL)
 	} else if postKind == contentTypeApJSON {
-		var response models.Response
-		response.Result = h.BaseURL + shortURL
+		response := models.Response{Result: h.BaseURL + shortURL}
+		var err error
 		resp, err = json.Marshal(response)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+			return nil, http.StatusInternalServerError, err
 		}
 	}
 
-	w.Header().Set("Content-Type", postKind)
-	pgError, ok := pgErr.(*pgconn.PgError)
-	if ok && pgError.Code == pgerrcode.UniqueViolation {
-		w.WriteHeader(http.StatusConflict)
-	} else {
-		w.WriteHeader(http.StatusCreated)
+	if pgErr != nil {
+		if pgError, ok := pgErr.(*pgconn.PgError); ok && pgError.Code == pgerrcode.UniqueViolation {
+			return resp, http.StatusConflict, nil
+		}
 	}
 
-	w.Write(resp)
+	return resp, http.StatusCreated, nil
 }
 
 // PostHandle handles requests to create a short URL from a plain text body.

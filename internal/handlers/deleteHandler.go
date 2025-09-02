@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 )
 
@@ -38,28 +37,34 @@ func (h *URLHandler) DeleteHandle(w http.ResponseWriter, r *http.Request) {
 	)
 	cookieR, err := r.Cookie(h.Auth.CookieName)
 	if err != nil {
-		log.Print(err.Error())
-	}
-
-	cookieW, err = h.Auth.FillUserReturnCookie(cookieR)
-	if err != nil {
-		log.Fatal(err)
-	}
-	finalCh := make(chan string, 1024)
-
-	var ShortURLs []string
-	if err := json.NewDecoder(r.Body).Decode(&ShortURLs); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusUnauthorized)
 		w.Write([]byte(err.Error()))
 		return
 	}
 
-	go func(ShortURLs []string) {
-		for _, shortURL := range ShortURLs {
+	cookieW, err = h.Auth.FillUserReturnCookie(cookieR)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	var shortURLs []string
+	if err := json.NewDecoder(r.Body).Decode(&shortURLs); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	defer r.Body.Close()
+
+	finalCh := make(chan string, len(shortURLs))
+	go func(shortURLs []string) {
+		defer close(finalCh)
+		for _, shortURL := range shortURLs {
 			finalCh <- shortURL
 
 		}
-	}(ShortURLs)
+	}(shortURLs)
 
 	go h.DelBatch(finalCh)
 
