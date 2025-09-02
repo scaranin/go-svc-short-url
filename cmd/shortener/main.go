@@ -54,7 +54,14 @@ func main() {
 
 	mux := api.InitRoute(&h)
 
-	err = http.ListenAndServe(cfg.ServerURL, mux)
+	if cfg.HTTPSMode == "true" {
+		cert := `.\internal\cert\server.crt`
+		key := `.\internal\cert\server.key`
+		err = http.ListenAndServeTLS(cfg.ServerURL, cert, key, mux)
+	} else {
+		err = http.ListenAndServe(cfg.ServerURL, mux)
+	}
+
 	if err != nil {
 		log.Fatal(err)
 	}
