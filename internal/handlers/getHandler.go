@@ -58,7 +58,7 @@ func (h *URLHandler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 	}
 	cookieW, err = h.Auth.FillUserReturnCookie(cookieR)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err.Error())
 	}
 	if err == http.ErrNoCookie {
 		w.WriteHeader(http.StatusNoContent)

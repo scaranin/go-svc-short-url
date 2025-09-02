@@ -79,8 +79,6 @@ func (dbStore DBStorage) Ping(ctx context.Context) error {
 
 // GetUserURLList fetches all non-deleted URLs associated with a specific UserID.
 // It queries the database and populates a slice of `models.URLUserList`.
-// Note: This function uses `log.Fatal` on database errors, which will terminate
-// the application. In a robust service, these errors should be returned instead.
 func (dbStore DBStorage) GetUserURLList(UserID string) ([]models.URLUserList, error) {
 	ctx := context.Background()
 	rows, err := dbStore.PGXPool.Query(ctx, "select short_url, original_url from MAP_URL WHERE user_id = @P_USER_ID",
