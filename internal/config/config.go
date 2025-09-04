@@ -3,7 +3,6 @@ package config
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -118,15 +117,14 @@ func CreateConfig() (ShortenerConfig, error) {
 
 	fillConfig(&Cfg, &NetCfg)
 
-	byteFile, err := os.ReadFile("config.json")
+	byteFile, err := os.ReadFile("internal/config/config.json")
 	if err != nil {
-		return Cfg, err
+		log.Println(err)
+		return Cfg, nil
 	}
 	json.Unmarshal(byteFile, &NetCfg)
 
 	fillConfig(&Cfg, &NetCfg)
-
-	fmt.Println(Cfg)
 
 	return Cfg, err
 }

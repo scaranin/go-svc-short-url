@@ -43,8 +43,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(cfg)
-
 	store, err := config.CreateStore(cfg)
 	if err != nil {
 		log.Fatal(err)
