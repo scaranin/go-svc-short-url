@@ -47,8 +47,8 @@ func fillConfig(srcCfg *ShortenerConfig, dstCfg *ShortenerConfig) {
 
 	if len(srcCfg.BaseURL) == 0 {
 		srcCfg.BaseURL = dstCfg.BaseURL
+		srcCfg.BaseURL += "/"
 	}
-	//srcCfg.BaseURL += "/"
 
 	if len(srcCfg.FileStoragePath) == 0 {
 		srcCfg.FileStoragePath = dstCfg.FileStoragePath
