@@ -115,6 +115,7 @@ func CreateConfig() (ShortenerConfig, error) {
 		return Cfg, err
 	}
 	json.Unmarshal(byteFile, &NetCfg)
+
 	fillConfig(&Cfg, &NetCfg)
 
 	return Cfg, err
