@@ -1,8 +1,10 @@
 package config
 
 import (
+	"encoding/json"
 	"flag"
 	"log"
+	"os"
 
 	"github.com/caarlos0/env"
 	"github.com/scaranin/go-svc-short-url/internal/models"
@@ -12,11 +14,11 @@ import (
 // ShortenerConfig contains all configuration parameters for the URL shortener service.
 // Fields are tagged for environment variable parsing using github.com/caarlos0/env.
 type ShortenerConfig struct {
-	ServerURL       string `env:"SERVER_ADDRESS"`
-	BaseURL         string `env:"BASE_URL"`
-	FileStoragePath string `env:"FILE_STORAGE_PATH"`
-	DSN             string `env:"DATABASE_DSN"`
-	HTTPSMode       string `env:"ENABLE_HTTPS"`
+	ServerURL       string `json:"server_address" env:"SERVER_ADDRESS"`
+	BaseURL         string `json:"base_url" env:"BASE_URL"`
+	FileStoragePath string `json:"file_storage_path" env:"FILE_STORAGE_PATH"`
+	DSN             string `json:"database_dsn" env:"DATABASE_DSN"`
+	HTTPSMode       string `json:"enable_https" env:"ENABLE_HTTPS"`
 }
 
 // New creates a new ShortenerConfig with default values.
@@ -37,10 +39,35 @@ func New() ShortenerConfig {
 
 }
 
+func fillConfig(srcCfg *ShortenerConfig, dstCfg *ShortenerConfig) {
+	if len(srcCfg.ServerURL) == 0 {
+		srcCfg.ServerURL = dstCfg.ServerURL
+	}
+
+	if len(srcCfg.BaseURL) == 0 {
+		srcCfg.BaseURL = dstCfg.BaseURL
+	}
+
+	srcCfg.BaseURL += "/"
+
+	if len(srcCfg.FileStoragePath) == 0 {
+		srcCfg.FileStoragePath = dstCfg.FileStoragePath
+	}
+
+	if len(srcCfg.DSN) == 0 {
+		srcCfg.DSN = dstCfg.DSN
+	}
+
+	if len(srcCfg.HTTPSMode) == 0 {
+		srcCfg.HTTPSMode = dstCfg.HTTPSMode
+	}
+}
+
 // CreateConfig loads and initializes application configuration.
 // It follows this precedence order:
 //  1. Environment variables (highest priority)
 //  2. Command-line flags
+//  3. JSON config file
 //  3. Default values (lowest priority)
 //
 // Returns:
@@ -81,27 +108,14 @@ func CreateConfig() (ShortenerConfig, error) {
 
 	flag.Parse()
 
-	if len(Cfg.ServerURL) == 0 {
-		Cfg.ServerURL = NetCfg.ServerURL
-	}
+	fillConfig(&Cfg, &NetCfg)
 
-	if len(Cfg.BaseURL) == 0 {
-		Cfg.BaseURL = NetCfg.BaseURL
+	byteFile, err := os.ReadFile(`.\internal\config\config.json`)
+	if err != nil {
+		return Cfg, err
 	}
-
-	Cfg.BaseURL += "/"
-
-	if len(Cfg.FileStoragePath) == 0 {
-		Cfg.FileStoragePath = NetCfg.FileStoragePath
-	}
-
-	if len(Cfg.DSN) == 0 {
-		Cfg.DSN = NetCfg.DSN
-	}
-
-	if len(Cfg.HTTPSMode) == 0 {
-		Cfg.HTTPSMode = NetCfg.HTTPSMode
-	}
+	json.Unmarshal(byteFile, &NetCfg)
+	fillConfig(&Cfg, &NetCfg)
 
 	return Cfg, err
 }
