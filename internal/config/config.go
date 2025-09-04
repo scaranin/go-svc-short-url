@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/caarlos0/env"
 	"github.com/scaranin/go-svc-short-url/internal/models"
@@ -47,6 +48,9 @@ func fillConfig(srcCfg *ShortenerConfig, dstCfg *ShortenerConfig) {
 
 	if len(srcCfg.BaseURL) == 0 {
 		srcCfg.BaseURL = dstCfg.BaseURL
+	}
+
+	if !strings.HasSuffix(srcCfg.BaseURL, "/") {
 		srcCfg.BaseURL += "/"
 	}
 
@@ -91,6 +95,7 @@ func CreateConfig() (ShortenerConfig, error) {
 	if flag.Lookup("a") == nil {
 		flag.StringVar(&NetCfg.ServerURL, "a", "localhost:8080", "Server URL")
 	}
+
 	if flag.Lookup("b") == nil {
 		if NetCfg.HTTPSMode == "true" {
 			flag.StringVar(&NetCfg.BaseURL, "b", "https://localhost:8080", "Base URL")
@@ -99,9 +104,11 @@ func CreateConfig() (ShortenerConfig, error) {
 		}
 
 	}
+
 	if flag.Lookup("f") == nil {
 		flag.StringVar(&NetCfg.FileStoragePath, "f", "BaseFile.json", "File storage path")
 	}
+
 	if flag.Lookup("d") == nil {
 		flag.StringVar(&NetCfg.DSN, "d", "postgres://postgres:admin@localhost:5432/postgres", "DataBase DSN")
 	}
