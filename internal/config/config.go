@@ -109,7 +109,7 @@ func CreateConfig() (ShortenerConfig, error) {
 
 	fillConfig(&Cfg, &NetCfg)
 
-	byteFile, err := os.ReadFile(`.\internal\config\config.json`)
+	byteFile, err := os.ReadFile("./internal/config/config.json")
 	if err != nil {
 		return Cfg, err
 	}
