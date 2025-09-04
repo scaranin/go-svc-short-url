@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 
@@ -116,6 +117,8 @@ func CreateConfig() (ShortenerConfig, error) {
 	json.Unmarshal(byteFile, &NetCfg)
 
 	fillConfig(&Cfg, &NetCfg)
+
+	fmt.Println(Cfg)
 
 	return Cfg, err
 }
