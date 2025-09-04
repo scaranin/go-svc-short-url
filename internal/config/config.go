@@ -31,7 +31,7 @@ type ShortenerConfig struct {
 func New() ShortenerConfig {
 	return ShortenerConfig{
 		ServerURL:       "localhost:8080",
-		BaseURL:         "http://localhost:8080",
+		BaseURL:         "http://localhost:8080/",
 		FileStoragePath: "BaseFile.json",
 		DSN:             "postgres://postgres:admin@localhost:5432/postgres",
 		HTTPSMode:       "false",
@@ -46,7 +46,7 @@ func fillConfig(srcCfg *ShortenerConfig, dstCfg *ShortenerConfig) {
 
 	if len(srcCfg.BaseURL) == 0 {
 		srcCfg.BaseURL = dstCfg.BaseURL
-		//srcCfg.BaseURL += "/"
+		srcCfg.BaseURL += "/"
 	}
 
 	if len(srcCfg.FileStoragePath) == 0 {
@@ -92,9 +92,9 @@ func CreateConfig() (ShortenerConfig, error) {
 	}
 	if flag.Lookup("b") == nil {
 		if NetCfg.HTTPSMode == "true" {
-			flag.StringVar(&NetCfg.BaseURL, "b", "https://localhost:8080/", "Base URL")
+			flag.StringVar(&NetCfg.BaseURL, "b", "https://localhost:8080", "Base URL")
 		} else {
-			flag.StringVar(&NetCfg.BaseURL, "b", "http://localhost:8080/", "Base URL")
+			flag.StringVar(&NetCfg.BaseURL, "b", "http://localhost:8080", "Base URL")
 		}
 
 	}
