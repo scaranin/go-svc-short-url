@@ -43,6 +43,8 @@ func main() {
 		log.Fatal(err)
 	}
 
+	fmt.Println(cfg)
+
 	store, err := config.CreateStore(cfg)
 	if err != nil {
 		log.Fatal(err)
@@ -59,6 +61,7 @@ func main() {
 		key := `.\internal\cert\server.key`
 		err = http.ListenAndServeTLS(cfg.ServerURL, cert, key, mux)
 	} else {
+		fmt.Println(cfg.ServerURL)
 		err = http.ListenAndServe(cfg.ServerURL, mux)
 	}
 

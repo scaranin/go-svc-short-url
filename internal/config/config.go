@@ -47,9 +47,8 @@ func fillConfig(srcCfg *ShortenerConfig, dstCfg *ShortenerConfig) {
 
 	if len(srcCfg.BaseURL) == 0 {
 		srcCfg.BaseURL = dstCfg.BaseURL
-
 	}
-	srcCfg.BaseURL += "/"
+	//srcCfg.BaseURL += "/"
 
 	if len(srcCfg.FileStoragePath) == 0 {
 		srcCfg.FileStoragePath = dstCfg.FileStoragePath
@@ -94,9 +93,9 @@ func CreateConfig() (ShortenerConfig, error) {
 	}
 	if flag.Lookup("b") == nil {
 		if NetCfg.HTTPSMode == "true" {
-			flag.StringVar(&NetCfg.BaseURL, "b", "https://localhost:8080", "Base URL")
+			flag.StringVar(&NetCfg.BaseURL, "b", "https://localhost:8080/", "Base URL")
 		} else {
-			flag.StringVar(&NetCfg.BaseURL, "b", "http://localhost:8080", "Base URL")
+			flag.StringVar(&NetCfg.BaseURL, "b", "http://localhost:8080/", "Base URL")
 		}
 
 	}
@@ -117,7 +116,7 @@ func CreateConfig() (ShortenerConfig, error) {
 	}
 	json.Unmarshal(byteFile, &NetCfg)
 
-	//fillConfig(&Cfg, &NetCfg)
+	fillConfig(&Cfg, &NetCfg)
 
 	fmt.Println(Cfg)
 
