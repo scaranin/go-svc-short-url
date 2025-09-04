@@ -41,6 +41,7 @@ func New() ShortenerConfig {
 
 }
 
+// fillConfig fill a structure ShortenerConfig.
 func fillConfig(srcCfg *ShortenerConfig, dstCfg *ShortenerConfig) {
 	if len(srcCfg.ServerURL) == 0 {
 		srcCfg.ServerURL = dstCfg.ServerURL
@@ -117,7 +118,7 @@ func CreateConfig() (ShortenerConfig, error) {
 
 	fillConfig(&Cfg, &NetCfg)
 
-	byteFile, err := os.ReadFile("./internal/config/config.json")
+	byteFile, err := os.ReadFile("config.json")
 	if err != nil {
 		return Cfg, err
 	}
