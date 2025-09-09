@@ -1,11 +1,17 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
+	"github.com/go-chi/chi"
 	"github.com/scaranin/go-svc-short-url/internal/api"
 	"github.com/scaranin/go-svc-short-url/internal/auth"
 	"github.com/scaranin/go-svc-short-url/internal/config"
@@ -35,6 +41,46 @@ func buildOut() {
 	fmt.Printf("Build commit: %s\n", buildCommit)
 }
 
+func startServer(cfg *config.ShortenerConfig, router *chi.Mux) error {
+	var err error
+	server := http.Server{
+		Addr:    cfg.ServerURL,
+		Handler: router,
+	}
+
+	go func() {
+		if cfg.HTTPSMode == "true" {
+			cert := `.\internal\cert\server.crt`
+			key := `.\internal\cert\server.key`
+			err = http.ListenAndServeTLS(cfg.ServerURL, cert, key, router)
+		} else {
+			fmt.Println(cfg.ServerURL)
+			err = http.ListenAndServe(cfg.ServerURL, router)
+		}
+
+		if err = server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
+	}()
+
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	<-signalChan
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	err = server.Shutdown(ctx)
+
+	if err != nil {
+		return err
+	} else {
+		log.Println("Server is stopped!")
+	}
+
+	return err
+}
+
 func main() {
 	buildOut()
 
@@ -54,13 +100,7 @@ func main() {
 
 	mux := api.InitRoute(&h)
 
-	if cfg.HTTPSMode == "true" {
-		cert := `.\internal\cert\server.crt`
-		key := `.\internal\cert\server.key`
-		err = http.ListenAndServeTLS(cfg.ServerURL, cert, key, mux)
-	} else {
-		err = http.ListenAndServe(cfg.ServerURL, mux)
-	}
+	startServer(&cfg, mux)
 
 	if err != nil {
 		log.Fatal(err)
