@@ -18,19 +18,15 @@ import (
 
 func TestGetStats(t *testing.T) {
 	tests := []struct {
-		name string
-		// Для Auth: ReturnParseErr
+		name           string
 		returnParseErr bool
-		// Для CheckIP
-		trustedSubnet string
-		xRealIP       string
-		// Для Storage
-		getStatsFunc func() (models.Statistic, error)
-		// Ожидания
-		reqHasCookie bool
-		wantStatus   int
-		wantBody     string
-		checkUserID  bool // дополнительная проверка UserID из парсинга
+		trustedSubnet  string
+		xRealIP        string
+		getStatsFunc   func() (models.Statistic, error)
+		reqHasCookie   bool
+		wantStatus     int
+		wantBody       string
+		checkUserID    bool
 	}{
 		{
 			name:           "get stat handle negative test #1. IP not in subnet",
@@ -70,24 +66,23 @@ func TestGetStats(t *testing.T) {
 			returnParseErr: false,
 			trustedSubnet:  "192.164.1.0/24",
 			xRealIP:        "192.164.1.10",
-			getStatsFunc:   func() (models.Statistic, error) { return models.Statistic{URLs: 42, Users: 10}, nil },
+			getStatsFunc:   func() (models.Statistic, error) { return models.Statistic{URLs: 2, Users: 0}, nil },
 			reqHasCookie:   true,
 			wantStatus:     http.StatusOK,
-			wantBody:       `{"urls":3,"users":69}`,
-			checkUserID:    true, // UserID должно соответствовать UUID из токена
+			wantBody:       `{"urls":2,"users":0}`,
+			checkUserID:    true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Создаём URLHandler с моками
 			authConfig := auth.AuthConfig{
 				CookieName: "auth_token",
-				UserID:     uuid.New().String(), // начальное пустое
-				SecretKey:  "TsoyZhiv",          // тестовая
+				UserID:     uuid.New().String(),
+				SecretKey:  "TsoyZhiv",
 				TokenExp:   24 * time.Hour,
 			}
-			fs, err := storage.CreateStoreDB("postgres://postgres:admin@localhost:5432/postgres")
+			fs, err := storage.CreateStoreFile("BaseFile.json")
 			if err != nil {
 				log.Println(err)
 			}
@@ -97,11 +92,10 @@ func TestGetStats(t *testing.T) {
 				TrustedSubnet: tt.trustedSubnet,
 			}
 
-			// Создаём request
 			req := httptest.NewRequest(http.MethodGet, "/api/internal/stats", nil)
-			req.Header.Set("Content-Type", "text/plain; charset=utf-8") // предположенный contentTypeTextPlain
+			req.Header.Set("Content-Type", "text/plain; charset=utf-8")
 			if tt.reqHasCookie {
-				req.AddCookie(&http.Cookie{Name: "authcookie", Value: "incoming-jwt"}) // тестовый токен (невалидный, но парсинг вернёт ошибку если нужно)
+				req.AddCookie(&http.Cookie{Name: "authcookie", Value: "incoming-jwt"})
 			}
 			if tt.xRealIP != "" {
 				req.Header.Set("X-Real-IP", tt.xRealIP)
@@ -109,7 +103,6 @@ func TestGetStats(t *testing.T) {
 
 			rr := httptest.NewRecorder()
 
-			// Вызываем GetStats
 			h.GetStats(rr, req)
 
 			res := rr.Result()
@@ -117,7 +110,6 @@ func TestGetStats(t *testing.T) {
 				t.Errorf("want status %d, got %d", tt.wantStatus, res.StatusCode)
 			}
 
-			// Проверка тела для 200
 			if tt.wantStatus == http.StatusOK {
 				got := strings.TrimSpace(rr.Body.String())
 				if got != tt.wantBody {
@@ -125,12 +117,10 @@ func TestGetStats(t *testing.T) {
 				}
 			}
 
-			// Проверка UserID (для кейсов ускheadline парсинга)
 			if tt.checkUserID && tt.returnParseErr == false {
 				if authConfig.UserID == "" {
 					t.Errorf("want UserID to be set from JWT, got empty")
 				} else {
-					// Доп. проверка: UUID валидный (если не новый cookie — проверяем формат из произнего токена)
 					_, err := uuid.Parse(authConfig.UserID)
 					if err != nil {
 						t.Errorf("want UserID to be valid UUID, got '%s', err: %v", authConfig.UserID, err)
