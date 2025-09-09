@@ -3,5 +3,6 @@
     "base_url": "http://localhost:8080",
     "file_storage_path": "BaseFile.json",
     "database_dsn": "postgres://postgres:admin@localhost:5432/postgres",
-    "enable_https": "true"
+    "enable_https": "true",
+    "trusted_subnet": "192.164.1.1/24"
 }

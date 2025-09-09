@@ -135,6 +135,25 @@ func (dbStore DBStorage) DeleteBulk(UserID string, ShortURLs []string) error {
 	return tx.Commit(ctx)
 }
 
+// GetStats retrieves storage statistics from the database, including the total number of users
+// and the number of unique short URLs.
+//
+// Returns:
+//   - models.Statistic: a struct containing count Users and URLs
+//   - error: an error
+func (dbStore DBStorage) GetStats() (models.Statistic, error) {
+	ctx := context.Background()
+	sql_stmt := `SELECT 
+    (SELECT COUNT(user_id) FROM users) AS users_count,
+    (SELECT COUNT(distinct short_url) FROM map_url) AS map_url_count`
+	row := dbStore.PGXPool.QueryRow(ctx, sql_stmt)
+
+	var stat models.Statistic
+
+	err := row.Scan(&stat.Users, &stat.URLs)
+	return stat, err
+}
+
 // CreateDBScheme sets up the necessary database schema.
 // It creates the `MAP_URL` table and a `UNIQUE INDEX` on `original_url`.
 // The method is idempotent, meaning it can be run multiple times without causing
