@@ -143,10 +143,10 @@ func (dbStore DBStorage) DeleteBulk(UserID string, ShortURLs []string) error {
 //   - error: an error
 func (dbStore DBStorage) GetStats() (models.Statistic, error) {
 	ctx := context.Background()
-	sql_stmt := `SELECT 
+	sqlStmt := `SELECT 
     (SELECT COUNT(user_id) FROM users) AS users_count,
     (SELECT COUNT(distinct short_url) FROM map_url) AS map_url_count`
-	row := dbStore.PGXPool.QueryRow(ctx, sql_stmt)
+	row := dbStore.PGXPool.QueryRow(ctx, sqlStmt)
 
 	var stat models.Statistic
 
