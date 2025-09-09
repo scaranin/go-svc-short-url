@@ -6,6 +6,10 @@ import (
 	"net/http"
 )
 
+// GetStats handles the /stats endpoint by retrieving and returning storage statistics in JSON format.
+// It performs authentication via cookies, verifies the client's IP against a trusted subnet,
+// fetches stats from storage, marshals them to JSON, and sets an authentication cookie.
+// Returns appropriate HTTP status codes and error messages on failure.
 func (h *URLHandler) GetStats(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", contentTypeTextPlain)
 	var (
