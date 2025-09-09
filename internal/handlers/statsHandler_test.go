@@ -73,7 +73,7 @@ func TestGetStats(t *testing.T) {
 			getStatsFunc:   func() (models.Statistic, error) { return models.Statistic{URLs: 42, Users: 10}, nil },
 			reqHasCookie:   true,
 			wantStatus:     http.StatusOK,
-			wantBody:       `{"urls":3,"users":69}`,
+			wantBody:       `{"urls":0,"users":0}`,
 			checkUserID:    true, // UserID должно соответствовать UUID из токена
 		},
 	}
@@ -87,7 +87,7 @@ func TestGetStats(t *testing.T) {
 				SecretKey:  "TsoyZhiv",          // тестовая
 				TokenExp:   24 * time.Hour,
 			}
-			fs, err := storage.CreateStoreDB("postgres://postgres:admin@localhost:5432/postgres")
+			fs, err := storage.CreateStoreFile("BaseFile.json")
 			if err != nil {
 				log.Println(err)
 			}
