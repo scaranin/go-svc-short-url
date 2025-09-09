@@ -20,6 +20,7 @@ type ShortenerConfig struct {
 	FileStoragePath string `json:"file_storage_path" env:"FILE_STORAGE_PATH"`
 	DSN             string `json:"database_dsn" env:"DATABASE_DSN"`
 	HTTPSMode       string `json:"enable_https" env:"ENABLE_HTTPS"`
+	TrustedSubnet   string `json:"trusted_subnet" env:"TRUSTED_SUBNET"`
 }
 
 // New creates a new ShortenerConfig with default values.
@@ -29,6 +30,7 @@ type ShortenerConfig struct {
 //   - FileStoragePath: "BaseFile.json"
 //   - DSN: "postgres://postgres:admin@localhost:5432/postgres"
 //   - HTTPSMode: "false"
+//   - TrustedSubnet: "192.168.1.1/24",
 func New() ShortenerConfig {
 	return ShortenerConfig{
 		ServerURL:       "localhost:8080",
@@ -36,6 +38,7 @@ func New() ShortenerConfig {
 		FileStoragePath: "BaseFile.json",
 		DSN:             "postgres://postgres:admin@localhost:5432/postgres",
 		HTTPSMode:       "false",
+		TrustedSubnet:   "192.164.1.1/24",
 	}
 
 }
@@ -64,6 +67,10 @@ func fillConfig(srcCfg *ShortenerConfig, dstCfg *ShortenerConfig) {
 
 	if len(srcCfg.HTTPSMode) == 0 {
 		srcCfg.HTTPSMode = dstCfg.HTTPSMode
+	}
+
+	if len(srcCfg.TrustedSubnet) == 0 {
+		srcCfg.TrustedSubnet = dstCfg.TrustedSubnet
 	}
 }
 
@@ -111,6 +118,10 @@ func CreateConfig() (ShortenerConfig, error) {
 
 	if flag.Lookup("d") == nil {
 		flag.StringVar(&NetCfg.DSN, "d", "postgres://postgres:admin@localhost:5432/postgres", "DataBase DSN")
+	}
+
+	if flag.Lookup("t") == nil {
+		flag.StringVar(&NetCfg.TrustedSubnet, "t", "192.164.1.1/24", "Trusted Subnet")
 	}
 
 	flag.Parse()
