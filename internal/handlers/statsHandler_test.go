@@ -106,6 +106,7 @@ func TestGetStats(t *testing.T) {
 			h.GetStats(rr, req)
 
 			res := rr.Result()
+			defer res.Body.Close()
 			if res.StatusCode != tt.wantStatus {
 				t.Errorf("want status %d, got %d", tt.wantStatus, res.StatusCode)
 			}
