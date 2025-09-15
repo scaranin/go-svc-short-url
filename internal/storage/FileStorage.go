@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"io"
 	"log"
 
@@ -126,4 +127,9 @@ func (fs *FileStorageJSON) Close() {
 	if fs.Consumer != nil {
 		fs.Consumer.Close()
 	}
+}
+
+// Ping return nil for FileStorage
+func (fs FileStorageJSON) Ping(ctx context.Context) error {
+	return nil
 }

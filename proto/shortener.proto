@@ -1,0 +1,105 @@
+syntax = "proto3";
+
+package shortener;
+option go_package = "/internal/gen;gen";
+
+import "google/protobuf/empty.proto";
+
+service ShortenerService {
+  // Сокращение URL (POST /)
+  rpc ShortenText(ShortenTextRequest) returns (ShortenTextResponse) {};
+  
+  // Сокращение URL через JSON (POST /api/shorten)
+  rpc ShortenJSON(ShortenJSONRequest) returns (ShortenJSONResponse) {};
+  
+  // Пакетное сокращение (POST /api/shorten/batch)
+  rpc ShortenBatch(BatchShortenRequest) returns (BatchShortenResponse) {};
+  
+  // Получение оригинального URL (GET /{id})
+  rpc GetOriginal(GetOriginalRequest) returns (GetOriginalResponse) {};
+  
+  // Получение списка URL пользователя (GET /api/user/urls)
+  rpc GetUserURLs(google.protobuf.Empty) returns (GetUserURLsResponse) {};
+
+  // Проверка соединения с БД (GET /ping)
+  rpc Ping(google.protobuf.Empty) returns (PingResponse) {};
+  
+  // Пакетное удаление URL (DELETE /api/user/urls)
+  rpc DeleteUserURLs(DeleteUserURLsRequest) returns (google.protobuf.Empty) {};
+  
+  // Получение статистики (GET /api/stats)
+  rpc GetStats(google.protobuf.Empty) returns (StatsResponse) {};
+}
+
+// Запросы для текстового сокращения (POST /)
+message ShortenTextRequest {
+  string url = 1;
+}
+
+message ShortenTextResponse {
+  string short_url = 1;
+}
+
+// Запросы для JSON сокращения (POST /api/shorten)
+message ShortenJSONRequest {
+  string url = 1;
+}
+
+message ShortenJSONResponse {
+  string result = 1;
+}
+
+// Пакетное сокращение
+message BatchItemRequest {
+  string correlation_id = 1;
+  string original_url = 2;
+}
+
+message BatchItemResponse {
+  string correlation_id = 1;
+  string short_url = 2;
+}
+
+message BatchShortenRequest {
+  repeated BatchItemRequest items = 1;
+}
+
+message BatchShortenResponse {
+  repeated BatchItemResponse items = 1;
+}
+
+// Получение оригинального URL
+message GetOriginalRequest {
+  string short_url = 1;
+}
+
+message GetOriginalResponse {
+  string original_url = 1;
+}
+
+// URL пользователя
+message UserURLItem {
+  string short_url = 1;
+  string original_url = 2;
+}
+
+message GetUserURLsResponse {
+  repeated UserURLItem items = 1;
+}
+
+// Пакетное удаление
+message DeleteUserURLsRequest {
+  repeated string short_urls = 1;
+}
+
+// Ответ для ping
+message PingResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Статистика
+message StatsResponse {
+  int32 urls = 1;
+  int32 users = 2;
+}
