@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	"fmt"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -22,6 +21,7 @@ func (s *GRPCServer) ShortenText(ctx context.Context, req *gen.ShortenTextReques
 	userID := s.getUserIDFromContext(ctx)
 
 	shortURL := handlers.ShortURLCalc(req.Url)
+
 	url := &models.URL{
 		OriginalURL: req.Url,
 		ShortURL:    shortURL,
@@ -29,7 +29,7 @@ func (s *GRPCServer) ShortenText(ctx context.Context, req *gen.ShortenTextReques
 	}
 
 	shortURL, err := s.storage.Save(url)
-	fmt.Println("shortURL", shortURL)
+
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to save URL")
 	}

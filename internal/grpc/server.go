@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/scaranin/go-svc-short-url/internal/gen"
@@ -48,8 +47,6 @@ func (s *GRPCServer) getUserIDFromContext(ctx context.Context) string {
 	if len(cookies) == 0 {
 		return ""
 	}
-
-	fmt.Println("cookies", cookies)
 
 	userID, err := s.auth.GetUserIDFromCookie(cookies[0])
 	if err != nil {
