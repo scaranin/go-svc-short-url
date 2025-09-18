@@ -57,6 +57,18 @@ func (fs FileStorageJSON) DeleteBulk(UserID string, ShortURLs []string) error {
 	return nil
 }
 
+// GetStats returns storage statistics including the number of users
+// and the number of URLs stored in fs.URLMap. It never returns an error in the current implementation.
+//
+// Returns:
+//   - models.Statistic: a struct containing Users (number of users) and URLs (number of URLs)
+func (fs FileStorageJSON) GetStats() (models.Statistic, error) {
+	var stat models.Statistic
+	stat.Users = 0
+	stat.URLs = len(fs.URLMap)
+	return stat, nil
+}
+
 // GetDataFromFile reads all URL records from the provided consumer and populates an in-memory map.
 // It is a helper function used during initialization to load existing data from a file.
 func GetDataFromFile(consumer *models.Consumer) map[string]string {

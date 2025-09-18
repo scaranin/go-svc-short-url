@@ -3,6 +3,9 @@ package handlers
 import (
 	"crypto/sha1"
 	"encoding/base64"
+	"log"
+	"net"
+	"net/http"
 
 	"github.com/scaranin/go-svc-short-url/internal/auth"
 	"github.com/scaranin/go-svc-short-url/internal/config"
@@ -33,6 +36,8 @@ type URLHandler struct {
 	// Auth holds authentication-related configuration and state, such as the
 	// current user's ID, derived from request context.
 	Auth auth.AuthConfig
+	// Trusted subnet
+	TrustedSubnet string
 }
 
 // CreateHandle initializes and returns a new URLHandler instance.
@@ -43,6 +48,7 @@ func CreateHandle(cfg config.ShortenerConfig, store models.Storage, auth auth.Au
 	h.Storage = store
 	h.DSN = cfg.DSN
 	h.Auth = auth
+	h.TrustedSubnet = cfg.TrustedSubnet
 	return h
 }
 
@@ -73,4 +79,35 @@ func (h *URLHandler) Save(originalURL string, correlationID string) (string, err
 // It delegates the call to the Load method of the configured Storage.
 func (h *URLHandler) Load(shortURL string) (string, error) {
 	return h.Storage.Load(shortURL)
+}
+
+// CheckIP verifies if the IP address from the "X-Real-IP" header in the request
+// is within the trusted subnet specified by h.TrustedSubnet.
+// It parses the IP and subnet CIDR; if parsing fails or IP is not contained
+//
+// Parameters:
+//   - r: the HTTP request to check
+//
+// Returns:
+//   - bool: true if the IP is within the trusted subnet, false otherwise
+func (h *URLHandler) CheckIP(r *http.Request) bool {
+	res := false
+
+	ipStr := r.Header.Get("X-Real-IP")
+
+	ip := net.ParseIP(ipStr)
+
+	_, subnet, err := net.ParseCIDR(h.TrustedSubnet)
+	if err != nil {
+		log.Println(err)
+		return res
+	}
+
+	if subnet.Contains(ip) {
+		res = true
+	} else {
+		log.Println(err)
+	}
+
+	return res
 }

@@ -21,6 +21,8 @@ type Storage interface {
 	// DeleteBulk marks a batch of URLs for deletion for a specific user.
 	// This is typically a "soft delete" operation.
 	DeleteBulk(UserID string, ShortURLs []string) error
+
+	GetStats() (Statistic, error)
 }
 
 // Request represents the JSON structure for a single URL shortening request.
@@ -79,6 +81,13 @@ type URLUserList struct {
 type Producer struct {
 	file    *os.File
 	encoder *json.Encoder
+}
+
+// Statistic represents storage statistics including the total number of URLs and users.
+// It's used for marshaling/unmarshaling JSON data, with fields tagged for JSON output.
+type Statistic struct {
+	URLs  int `json:"urls"`
+	Users int `json:"users"`
 }
 
 // NewProducer creates a new Producer for writing to the specified file.
