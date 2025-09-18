@@ -21,6 +21,7 @@ type ShortenerConfig struct {
 	DSN             string `json:"database_dsn" env:"DATABASE_DSN"`
 	HTTPSMode       string `json:"enable_https" env:"ENABLE_HTTPS"`
 	TrustedSubnet   string `json:"trusted_subnet" env:"TRUSTED_SUBNET"`
+	GRPCAddress     string `json:"grpc_address" env:"GRPC_ADDRESS"`
 }
 
 // New creates a new ShortenerConfig with default values.
@@ -39,6 +40,7 @@ func New() ShortenerConfig {
 		DSN:             "postgres://postgres:admin@localhost:5432/postgres",
 		HTTPSMode:       "false",
 		TrustedSubnet:   "192.164.1.1/24",
+		GRPCAddress:     "localhost:9090",
 	}
 
 }
@@ -71,6 +73,10 @@ func fillConfig(srcCfg *ShortenerConfig, dstCfg *ShortenerConfig) {
 
 	if len(srcCfg.TrustedSubnet) == 0 {
 		srcCfg.TrustedSubnet = dstCfg.TrustedSubnet
+	}
+
+	if len(srcCfg.GRPCAddress) == 0 {
+		srcCfg.GRPCAddress = dstCfg.GRPCAddress
 	}
 }
 
@@ -122,6 +128,10 @@ func CreateConfig() (ShortenerConfig, error) {
 
 	if flag.Lookup("t") == nil {
 		flag.StringVar(&NetCfg.TrustedSubnet, "t", "192.164.1.1/24", "Trusted Subnet")
+	}
+
+	if flag.Lookup("g") == nil {
+		flag.StringVar(&NetCfg.GRPCAddress, "g", "localhost:9090", "GRPC adress")
 	}
 
 	flag.Parse()

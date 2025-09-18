@@ -4,5 +4,6 @@
     "file_storage_path": "BaseFile.json",
     "database_dsn": "postgres://postgres:admin@localhost:5432/postgres",
     "enable_https": "true",
-    "trusted_subnet": "192.164.1.1/24"
+    "trusted_subnet": "192.164.1.1/24",
+    "grpc_address": "localhost:9090"
 }

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 )
@@ -21,7 +22,9 @@ type Storage interface {
 	// DeleteBulk marks a batch of URLs for deletion for a specific user.
 	// This is typically a "soft delete" operation.
 	DeleteBulk(UserID string, ShortURLs []string) error
-
+	// Ping storage.
+	Ping(ctx context.Context) error
+	// GetStats return full storage statistic: users and URLs count.
 	GetStats() (Statistic, error)
 }
 

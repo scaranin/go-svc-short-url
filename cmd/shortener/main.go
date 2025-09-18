@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -11,11 +12,16 @@ import (
 	"syscall"
 	"time"
 
+	"google.golang.org/grpc"
+
 	"github.com/go-chi/chi"
 	"github.com/scaranin/go-svc-short-url/internal/api"
 	"github.com/scaranin/go-svc-short-url/internal/auth"
 	"github.com/scaranin/go-svc-short-url/internal/config"
+	"github.com/scaranin/go-svc-short-url/internal/gen"
+	grpsShortener "github.com/scaranin/go-svc-short-url/internal/grpc"
 	"github.com/scaranin/go-svc-short-url/internal/handlers"
+	"github.com/scaranin/go-svc-short-url/internal/models"
 )
 
 var (
@@ -41,7 +47,7 @@ func buildOut() {
 	fmt.Printf("Build commit: %s\n", buildCommit)
 }
 
-func startServer(cfg *config.ShortenerConfig, router *chi.Mux) error {
+func startServer(cfg *config.ShortenerConfig, router *chi.Mux) (*http.Server, error) {
 	var err error
 	server := http.Server{
 		Addr:    cfg.ServerURL,
@@ -54,31 +60,38 @@ func startServer(cfg *config.ShortenerConfig, router *chi.Mux) error {
 			key := `.\internal\cert\server.key`
 			err = http.ListenAndServeTLS(cfg.ServerURL, cert, key, router)
 		} else {
-			fmt.Println(cfg.ServerURL)
-			err = http.ListenAndServe(cfg.ServerURL, router)
+			fmt.Println("Starting REST server on:", cfg.ServerURL)
+			err = server.ListenAndServe()
 		}
 
-		if err = server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatal(err)
+		if err != nil && err != http.ErrServerClosed {
+			log.Fatal("REST server error:", err)
 		}
 	}()
 
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	return &server, nil
+}
 
-	<-signalChan
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
+func startServerGRPC(cfg *config.ShortenerConfig, store models.Storage, auth *auth.AuthConfig) error {
+	grpcAuthService := grpsShortener.NewAuthService(auth)
+	grpcServer := grpsShortener.NewGRPCServer(store, cfg.BaseURL, grpcAuthService)
 
-	err = server.Shutdown(ctx)
+	server := grpc.NewServer()
+	gen.RegisterShortenerServiceServer(server, grpcServer)
 
+	listener, err := net.Listen("tcp", cfg.GRPCAddress)
 	if err != nil {
 		return err
-	} else {
-		log.Println("Server is stopped!")
 	}
 
-	return err
+	go func() {
+		fmt.Println("Starting gRPC server on:", cfg.GRPCAddress)
+		if err := server.Serve(listener); err != nil {
+			log.Fatal("gRPC server error:", err)
+		}
+	}()
+
+	return nil
 }
 
 func main() {
@@ -100,9 +113,27 @@ func main() {
 
 	mux := api.InitRoute(&h)
 
-	startServer(&cfg, mux)
-
+	server, err := startServer(&cfg, mux)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Failed to start REST server:", err)
 	}
+
+	err = startServerGRPC(&cfg, store, &auth)
+	if err != nil {
+		log.Fatal("Failed to start gRPC server:", err)
+	}
+
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	fmt.Println("Both servers are running. Press Ctrl+C to stop.")
+
+	<-signalChan
+	fmt.Println("\nShutting down servers...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	server.Shutdown(ctx)
+
+	fmt.Println("Servers stopped!")
 }
